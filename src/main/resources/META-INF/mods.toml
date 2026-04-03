@@ -74,3 +74,10 @@ mandatory=false
 versionRange="[${emiVersion},)"
 ordering="AFTER"
 side="CLIENT"
+
+[[dependencies.${modId}]]
+modId="ponder"
+mandatory=true
+versionRange="[1.0.91,)"
+ordering="AFTER"
+side="CLIENT"

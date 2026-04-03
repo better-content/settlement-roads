@@ -96,6 +96,11 @@ sourceSets.main {
     resources.srcDir("src/generated/resources")
 }
 
+val syncGameTestStructures by tasks.registering(Copy::class) {
+    from("gameteststructures")
+    into(file("run/gameteststructures"))
+}
+
 repositories {
     mavenCentral()
     maven("https://maven.minecraftforge.net")
@@ -167,4 +172,8 @@ tasks.withType<KotlinCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+}
+
+tasks.matching { it.name == "prepareRunGameTestServer" }.configureEach {
+    dependsOn(syncGameTestStructures)
 }

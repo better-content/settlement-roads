@@ -1,0 +1,12 @@
+{
+  "conditions": [
+    {
+      "type": "forge:false"
+    }
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [],
+  "result": {
+    "item": "minecraft:air"
+  }
+}

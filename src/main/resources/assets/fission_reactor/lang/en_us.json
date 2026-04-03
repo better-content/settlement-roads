@@ -1,0 +1,5 @@
+{
+  "block.fission_reactor.fission_fuel_acceptor": "Fission Fuel Acceptor",
+  "tooltip.fission_reactor.criticality": "Criticality: %s",
+  "tooltip.fission_reactor.heat_output": "Heat/t: %s"
+}
