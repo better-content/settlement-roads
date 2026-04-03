@@ -7,5 +7,5 @@ pluginManagement {
     }
 }
 
-rootProject.name = "cna_chemlib_template"
+rootProject.name = "worldpaths"
 

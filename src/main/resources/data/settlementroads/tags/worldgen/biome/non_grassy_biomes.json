@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:stony_peaks",
+    "minecraft:windswept_hills",
+    "minecraft:windswept_gravelly_hills",
+    "minecraft:badlands",
+    "minecraft:eroded_badlands",
+    "minecraft:desert"
+  ]
+}

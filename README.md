@@ -1,40 +1,36 @@
-# CNA ChemLib Forge Template
+# WorldPaths
 
-Template repository for Minecraft `1.20.1` Forge mods built with Kotlin and pre-wired for:
+Deterministic, scenario-driven Forge 1.20.1 mod planning for settlement roads and bridges.
 
-- Create
-- Create: New Age
-- ChemLib
-- EMI
+This repository now contains both the execution docs and the first implementation slice for the project:
 
-## Included baseline
+- [SPEC.md](/home/gerald/mcmods/worldpaths/SPEC.md)
+- [TESTPLAN.md](/home/gerald/mcmods/worldpaths/TESTPLAN.md)
+- [docs/DEBUG_SCENARIOS.md](/home/gerald/mcmods/worldpaths/docs/DEBUG_SCENARIOS.md)
+- [docs/VISUAL_CHECKLIST.md](/home/gerald/mcmods/worldpaths/docs/VISUAL_CHECKLIST.md)
+- [CHANGELOG.md](/home/gerald/mcmods/worldpaths/CHANGELOG.md)
 
-- Forge `47.4.10`
-- Kotlin for Forge `4.11.0`
-- Create release `6.0.8` using the matching Create Maven build `6.0.8-289`
-- Create: New Age `1.1.7f`
-- ChemLib `2.0.19`
-- EMI `1.1.22+1.20.1+forge`
-- Java toolchain `17`
+The design bias is:
 
-## What to change for a new mod
+- deterministic synthetic scenes over natural worldgen
+- world-state assertions over screenshots
+- planning separated from placement
+- persistence via Overworld `SavedData`
+- data-driven compatibility via tags and config
 
-1. Update the mod metadata values in `gradle.properties`.
-2. Rename the Kotlin package under `src/main/kotlin`.
-3. Rename `TemplateMod.kt` and change the hardcoded `MOD_ID` constant so it matches `mod_id`.
-4. Replace the placeholder issue tracker URL and author name.
+Current implementation slice:
 
-## Commands
+- mod metadata and code namespace now use `settlementroads`
+- core planner/domain/storage scaffolding exists in `src/main/kotlin`
+- deterministic synthetic scenarios now drive both debug commands and GameTests
+- route planning can choose a bridge over a short shallow-water span or detour around a too-wide crossing
+- debug placement renders road rings, 3-wide roads, stone-brick bridge decks, parapet walls, and support columns
+- deterministic JVM tests cover clustering, rings, route selection, palette choice, bridge support logic, chunk indexing, and save-data round trips
+- in-world GameTests cover grassy bridge placement, rocky palette selection, cave support descent, wide-river detours, and rerun idempotence
+- debug commands register `/settlementroads debug spawn_scenario`, `plan_here`, `place_here`, and `clear_here`
 
-```bash
-./gradlew runClient
-./gradlew runServer
-./gradlew runData
-./gradlew build
-```
+Immediate implementation entry points:
 
-## Notes
-
-- Create is pulled from the official Create Maven using the matching development artifact for release `6.0.8`.
-- Create: New Age, ChemLib, and EMI are wired through Curse Maven file IDs so the dev runtime includes the same jars you plan to ship against.
-- EMI is added as a client-side dependency by default in `mods.toml`, since its `1.20.1` Forge release is optional on dedicated servers.
+- `./gradlew test`
+- `./gradlew runGameTestServer`
+- `./gradlew runData`
