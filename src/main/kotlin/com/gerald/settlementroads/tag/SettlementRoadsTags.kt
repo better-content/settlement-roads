@@ -1,7 +1,7 @@
 package com.gerald.settlementroads.tag
 
 import com.gerald.settlementroads.SettlementRoadsMod
-import net.minecraft.core.registries.Registries
+import com.gerald.settlementroads.registry.SettlementRoadsRegistryKeys
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.biome.Biome
@@ -26,13 +26,13 @@ object SettlementRoadsTags {
     }
 
     private fun blockTag(path: String): TagKey<Block> =
-        TagKey.create(Registries.BLOCK, id(path))
+        TagKey.create(SettlementRoadsRegistryKeys.BLOCKS, id(path))
 
     private fun biomeTag(path: String): TagKey<Biome> =
-        TagKey.create(Registries.BIOME, id(path))
+        TagKey.create(SettlementRoadsRegistryKeys.BIOMES, id(path))
 
     private fun structureTag(path: String): TagKey<Structure> =
-        TagKey.create(Registries.STRUCTURE, id(path))
+        TagKey.create(SettlementRoadsRegistryKeys.STRUCTURES, id(path))
 
     private fun id(path: String): ResourceLocation =
         ResourceLocation(SettlementRoadsMod.MOD_ID, path)

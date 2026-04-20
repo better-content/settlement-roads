@@ -1,8 +1,8 @@
-# WorldPaths
+# Settlement Roads
 
-Deterministic, scenario-driven Forge 1.20.1 mod planning for settlement roads and bridges.
+Deterministic, scenario-driven settlement road and bridge planning for Forge 1.20.1.
 
-This repository now contains both the execution docs and the first implementation slice for the project:
+This repository contains the mod implementation and its execution docs:
 
 - [SPEC.md](/home/gerald/mcmods/worldpaths/SPEC.md)
 - [TESTPLAN.md](/home/gerald/mcmods/worldpaths/TESTPLAN.md)
@@ -10,7 +10,7 @@ This repository now contains both the execution docs and the first implementatio
 - [docs/VISUAL_CHECKLIST.md](/home/gerald/mcmods/worldpaths/docs/VISUAL_CHECKLIST.md)
 - [CHANGELOG.md](/home/gerald/mcmods/worldpaths/CHANGELOG.md)
 
-The design bias is:
+The current design bias is:
 
 - deterministic synthetic scenes over natural worldgen
 - world-state assertions over screenshots
@@ -20,7 +20,8 @@ The design bias is:
 
 Current implementation slice:
 
-- mod metadata and code namespace now use `settlementroads`
+- mod metadata, code namespace, and resources now consistently use `settlementroads`
+- legacy `fissionreactor` sources, assets, tests, and dependency baggage have been removed
 - core planner/domain/storage scaffolding exists in `src/main/kotlin`
 - deterministic synthetic scenarios now drive both debug commands and GameTests
 - route planning can choose a bridge over a short shallow-water span or detour around a too-wide crossing
@@ -32,5 +33,6 @@ Current implementation slice:
 Immediate implementation entry points:
 
 - `./gradlew test`
+- `./gradlew build`
 - `./gradlew runGameTestServer`
 - `./gradlew runData`

@@ -13,6 +13,8 @@
 
 - Renamed the codebase from the template namespace to the `settlementroads` mod namespace
 - Added repo execution notes for tests, GameTests, and datagen entry points
+- Removed the legacy `fissionreactor` code and assets instead of excluding them from the build
+- Trimmed the Gradle configuration and mod metadata down to the dependencies used by `settlementroads`
 
 ### Implemented
 

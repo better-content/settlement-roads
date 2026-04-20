@@ -2,9 +2,9 @@ package com.gerald.settlementroads.runtime
 
 import com.gerald.settlementroads.planner.PlannerConfig
 import com.gerald.settlementroads.planner.model.StructureNode
+import com.gerald.settlementroads.registry.SettlementRoadsRegistryKeys
 import com.gerald.settlementroads.tag.SettlementRoadsTags
 import net.minecraft.core.BlockPos
-import net.minecraft.core.registries.Registries
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.FluidTags
 import net.minecraft.world.level.ChunkPos
@@ -24,7 +24,7 @@ object WorldStructureScanner {
         existingStructures: List<StructureNode>,
         config: PlannerConfig = PlannerConfig()
     ): StructureScanResult {
-        val structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE)
+        val structureRegistry = level.registryAccess().registryOrThrow(SettlementRoadsRegistryKeys.STRUCTURES)
         val discoveredById = existingStructures.associateByTo(linkedMapOf()) { it.id }
 
         for (chunkKey in loadedChunkKeys) {
