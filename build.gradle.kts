@@ -4,6 +4,7 @@ plugins {
     idea
     eclipse
     `maven-publish`
+    jacoco
     id("org.jetbrains.kotlin.jvm") version "1.9.25"
     id("net.minecraftforge.gradle") version "[6.0,6.2)"
 }
@@ -135,4 +136,44 @@ tasks.withType<Test>().configureEach {
 
 tasks.matching { it.name == "prepareRunGameTestServer" }.configureEach {
     dependsOn(syncGameTestStructures)
+}
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.test)
+    violationRules {
+        rule {
+            element = "CLASS"
+            includes = listOf(
+                "com.gerald.settlementroads.planner.*",
+                "com.gerald.settlementroads.planner.*.*",
+                "com.gerald.settlementroads.data.*"
+            )
+            excludes = listOf(
+                "com.gerald.settlementroads.planner.placement.SegmentIdCodec*",
+                "com.gerald.settlementroads.data.SettlementRoadsSavedData*"
+            )
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.75".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestReport)
+    dependsOn(tasks.jacocoTestCoverageVerification)
 }

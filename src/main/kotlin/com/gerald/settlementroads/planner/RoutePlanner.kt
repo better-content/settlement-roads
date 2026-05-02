@@ -93,6 +93,10 @@ object RoutePlanner {
         }
 
         val directPath = manhattanPath(start, end)
+        if (directPath.any { terrainProfile.columnAt(it).terrainClass == TerrainClass.FORBIDDEN }) {
+            return emptyList()
+        }
+
         val waterRun = firstWaterRun(directPath, terrainProfile)
             ?: return listOf(PathSegment.Ground(applySurfaceY(directPath, terrainProfile)))
 

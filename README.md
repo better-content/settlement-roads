@@ -4,11 +4,11 @@ Deterministic, scenario-driven settlement road and bridge planning for Forge 1.2
 
 This repository contains the mod implementation and its execution docs:
 
-- [SPEC.md](/home/gerald/mcmods/worldpaths/SPEC.md)
-- [TESTPLAN.md](/home/gerald/mcmods/worldpaths/TESTPLAN.md)
-- [docs/DEBUG_SCENARIOS.md](/home/gerald/mcmods/worldpaths/docs/DEBUG_SCENARIOS.md)
-- [docs/VISUAL_CHECKLIST.md](/home/gerald/mcmods/worldpaths/docs/VISUAL_CHECKLIST.md)
-- [CHANGELOG.md](/home/gerald/mcmods/worldpaths/CHANGELOG.md)
+- [SPEC.md](SPEC.md)
+- [TESTPLAN.md](TESTPLAN.md)
+- [docs/DEBUG_SCENARIOS.md](docs/DEBUG_SCENARIOS.md)
+- [docs/VISUAL_CHECKLIST.md](docs/VISUAL_CHECKLIST.md)
+- [CHANGELOG.md](CHANGELOG.md)
 
 The current design bias is:
 

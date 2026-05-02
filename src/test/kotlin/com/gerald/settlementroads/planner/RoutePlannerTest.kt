@@ -6,6 +6,8 @@ import com.gerald.settlementroads.planner.model.PathSegment
 import com.gerald.settlementroads.planner.model.RingPath
 import com.gerald.settlementroads.planner.model.StructureNode
 import com.gerald.settlementroads.planner.terrain.RouteTerrainProfile
+import com.gerald.settlementroads.planner.terrain.TerrainClass
+import com.gerald.settlementroads.planner.terrain.TerrainColumn
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.levelgen.structure.BoundingBox
 import kotlin.test.Test
@@ -90,6 +92,27 @@ class RoutePlannerTest {
                     )
                 )
             }
+        )
+
+        val connections = RoutePlanner.planConnections(structures, rings, terrain, config)
+
+        assertTrue(connections.isEmpty())
+    }
+
+    @Test
+    fun route_skips_connection_when_direct_path_contains_forbidden_terrain() {
+        val structures = twinStructures()
+        val rings = structures.associate { it.id to RingPlanner.plan(it) }
+        val terrain = RouteTerrainProfile(
+            isGrassyBiome = true,
+            defaultSurfaceY = 64,
+            columns = mapOf(
+                (0 to 0) to TerrainColumn(
+                    surfaceY = 64,
+                    terrainClass = TerrainClass.FORBIDDEN,
+                    supportProbes = emptyList()
+                )
+            )
         )
 
         val connections = RoutePlanner.planConnections(structures, rings, terrain, config)

@@ -4,13 +4,16 @@ import com.gerald.settlementroads.data.PlannedRoadNetwork
 import com.gerald.settlementroads.planner.PlannerConfig
 import com.gerald.settlementroads.planner.model.PathSegment
 import com.gerald.settlementroads.planner.placement.SegmentIdCodec
-import com.gerald.settlementroads.planner.palette.SurfacePaletteSelector
-import net.minecraft.core.registries.BuiltInRegistries
+import com.gerald.settlementroads.planner.placement.WeatheredRoadPalette
+import com.gerald.settlementroads.planner.placement.WeatheredRoadPiece
+import com.gerald.settlementroads.planner.placement.WeatheredWallPiece
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.tags.FluidTags
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 
 data class PlacementResult(
     val placedBlocks: Int,
@@ -47,7 +50,7 @@ object WorldNetworkPlacer {
                 continue
             }
 
-            placedBlocks += placeRoad(level, ringBlocks, segmentId, config)
+            placedBlocks += placeRoad(level, ringBlocks, segmentId)
             appliedSegments += segmentId
             remainingSegments--
         }
@@ -79,7 +82,7 @@ object WorldNetworkPlacer {
 
                     placedBlocks += when (segment) {
                         is PathSegment.Bridge -> placeBridge(level, segment)
-                        is PathSegment.Ground -> placeRoad(level, segment.blocks, segmentId, config)
+                        is PathSegment.Ground -> placeRoad(level, segment.blocks, segmentId)
                     }
                     appliedSegments += segmentId
                     remainingSegments--
@@ -96,36 +99,25 @@ object WorldNetworkPlacer {
     fun connectionSegmentId(connectionId: String, index: Int): String =
         SegmentIdCodec.connection(connectionId, index)
 
-    private fun placeRoad(level: ServerLevel, centerline: List<BlockPos>, seedKey: String, config: PlannerConfig): Int {
+    private fun placeRoad(level: ServerLevel, centerline: List<BlockPos>, seedKey: String): Int {
         if (centerline.isEmpty()) {
             return 0
         }
 
         val snappedCenterline = centerline.map { snapToSurface(level, it) }
-        val centerSet = snappedCenterline.toSet()
-        val footprint = mutableSetOf<BlockPos>()
+        val seed = seedKey.hashCode().toLong()
         var placed = 0
 
         for ((index, pos) in snappedCenterline.withIndex()) {
             val lateralOffsets = lateralOffsets(snappedCenterline, index)
-            footprint += pos
-            placed += placeIfChanged(level, pos, chooseRoadBlock(level, pos))
+            placed += placeRoadBlockIfRoadable(level, pos, seed, index, centerline = true)
             for ((offsetX, offsetZ) in lateralOffsets) {
                 val edge = snapToSurface(level, pos.offset(offsetX, 0, offsetZ))
-                footprint += edge
-                placed += placeIfChanged(level, edge, chooseRoadBlock(level, edge))
+                placed += placeRoadBlockIfRoadable(level, edge, seed, index, centerline = false)
             }
-        }
-
-        val detail = SurfacePaletteSelector.chooseCoarseDirtDetail(
-            pathFootprint = footprint,
-            centerline = centerSet,
-            seed = seedKey.hashCode().toLong(),
-            detailRate = config.coarseDirtRate
-        )
-        for (pos in detail) {
-            if (shouldUseDirtPath(level, pos)) {
-                placed += placeIfChanged(level, pos, Blocks.COARSE_DIRT)
+            for ((offsetX, offsetZ) in wallOffsets(lateralOffsets)) {
+                val wallBase = snapToSurface(level, pos.offset(offsetX, 0, offsetZ))
+                placed += placeWallIfRoadable(level, wallBase, seed, index)
             }
         }
 
@@ -166,11 +158,52 @@ object WorldNetworkPlacer {
         return placed
     }
 
-    private fun chooseRoadBlock(level: ServerLevel, pos: BlockPos): Block =
-        if (shouldUseDirtPath(level, pos)) Blocks.DIRT_PATH else Blocks.COBBLESTONE
+    private fun placeRoadBlockIfRoadable(
+        level: ServerLevel,
+        pos: BlockPos,
+        seed: Long,
+        index: Int,
+        centerline: Boolean
+    ): Int {
+        if (!isRoadableGround(level, pos)) {
+            return 0
+        }
 
-    private fun shouldUseDirtPath(level: ServerLevel, pos: BlockPos): Boolean =
-        BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).block).path.contains("grass")
+        val piece = WeatheredRoadPalette.choose(pos, seed, index, centerline) ?: return 0
+        return placeIfChanged(level, pos, roadState(piece))
+    }
+
+    private fun roadState(piece: WeatheredRoadPiece): BlockState =
+        when (piece) {
+            WeatheredRoadPiece.COBBLESTONE -> Blocks.COBBLESTONE.defaultBlockState()
+            WeatheredRoadPiece.MOSSY_COBBLESTONE -> Blocks.MOSSY_COBBLESTONE.defaultBlockState()
+        }
+
+    private fun placeWallIfRoadable(level: ServerLevel, base: BlockPos, seed: Long, index: Int): Int {
+        if (!isRoadableGround(level, base)) {
+            return 0
+        }
+
+        val wallPos = base.above()
+        if (!level.getBlockState(wallPos).isAir) {
+            return 0
+        }
+
+        val piece = WeatheredRoadPalette.chooseWall(wallPos, seed, index) ?: return 0
+        return placeIfChanged(level, wallPos, wallState(piece))
+    }
+
+    private fun wallState(piece: WeatheredWallPiece): BlockState =
+        when (piece) {
+            WeatheredWallPiece.COBBLESTONE_WALL -> Blocks.COBBLESTONE_WALL.defaultBlockState()
+            WeatheredWallPiece.MOSSY_COBBLESTONE_WALL -> Blocks.MOSSY_COBBLESTONE_WALL.defaultBlockState()
+        }
+
+    private fun isRoadableGround(level: ServerLevel, pos: BlockPos): Boolean {
+        val state = level.getBlockState(pos)
+        val fluid = state.fluidState
+        return !state.isAir && !fluid.`is`(FluidTags.WATER) && !fluid.`is`(FluidTags.LAVA)
+    }
 
     private fun wallOffsets(roadOffsets: List<Pair<Int, Int>>): List<Pair<Int, Int>> =
         if (roadOffsets.all { it.first == 0 }) {
@@ -199,8 +232,10 @@ object WorldNetworkPlacer {
         return placed
     }
 
-    private fun placeIfChanged(level: ServerLevel, pos: BlockPos, block: Block): Int {
-        val state = block.defaultBlockState()
+    private fun placeIfChanged(level: ServerLevel, pos: BlockPos, block: Block): Int =
+        placeIfChanged(level, pos, block.defaultBlockState())
+
+    private fun placeIfChanged(level: ServerLevel, pos: BlockPos, state: BlockState): Int {
         if (level.getBlockState(pos) == state) {
             return 0
         }

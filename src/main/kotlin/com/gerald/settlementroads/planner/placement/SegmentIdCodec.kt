@@ -1,7 +1,7 @@
 package com.gerald.settlementroads.planner.placement
 
 object SegmentIdCodec {
-    private const val PLACEMENT_VERSION = 2
+    private const val PLACEMENT_VERSION = 3
 
     fun ring(structureId: String): String =
         "$structureId:ring:v$PLACEMENT_VERSION"

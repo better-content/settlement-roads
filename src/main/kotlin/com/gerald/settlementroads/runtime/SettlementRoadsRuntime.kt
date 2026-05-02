@@ -35,7 +35,7 @@ object SettlementRoadsRuntime {
         }
         enqueue(level) {
             loadedChunks.getOrPut(level) { mutableSetOf() }
-            dirtyLevels += level
+            markDirtyNow(level)
         }
     }
 
@@ -57,7 +57,7 @@ object SettlementRoadsRuntime {
         val chunkKey = event.chunk.pos.toLong()
         enqueue(level) {
             loadedChunks.getOrPut(level) { mutableSetOf() } += chunkKey
-            dirtyLevels += level
+            markDirtyNow(level)
         }
     }
 
@@ -67,7 +67,7 @@ object SettlementRoadsRuntime {
         val chunkKey = chunk.pos.toLong()
         enqueue(level) {
             loadedChunks[level]?.remove(chunkKey)
-            dirtyLevels += level
+            markDirtyNow(level)
         }
     }
 
@@ -149,7 +149,7 @@ object SettlementRoadsRuntime {
 
     fun markDirty(level: ServerLevel) {
         enqueue(level) {
-            dirtyLevels += level
+            markDirtyNow(level)
         }
     }
 
@@ -195,8 +195,12 @@ object SettlementRoadsRuntime {
         val refreshed = observedLoadedChunks(level)
         if (refreshed != previous) {
             loadedChunks[level] = refreshed.toMutableSet()
-            dirtyLevels += level
+            markDirtyNow(level)
         }
+    }
+
+    private fun markDirtyNow(level: ServerLevel) {
+        dirtyLevels += level
     }
 
     private fun observedLoadedChunks(level: ServerLevel): Set<Long> {

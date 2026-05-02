@@ -4,10 +4,10 @@
 
 ### Added
 
-- Initial repo-ready project specification in [SPEC.md](/home/gerald/mcmods/worldpaths/SPEC.md)
-- Deterministic verification strategy in [TESTPLAN.md](/home/gerald/mcmods/worldpaths/TESTPLAN.md)
-- Debug scenario inventory in [docs/DEBUG_SCENARIOS.md](/home/gerald/mcmods/worldpaths/docs/DEBUG_SCENARIOS.md)
-- Manual visual verification checklist in [docs/VISUAL_CHECKLIST.md](/home/gerald/mcmods/worldpaths/docs/VISUAL_CHECKLIST.md)
+- Initial repo-ready project specification in [SPEC.md](SPEC.md)
+- Deterministic verification strategy in [TESTPLAN.md](TESTPLAN.md)
+- Debug scenario inventory in [docs/DEBUG_SCENARIOS.md](docs/DEBUG_SCENARIOS.md)
+- Manual visual verification checklist in [docs/VISUAL_CHECKLIST.md](docs/VISUAL_CHECKLIST.md)
 
 ### Changed
 

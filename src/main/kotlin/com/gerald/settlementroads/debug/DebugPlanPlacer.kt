@@ -1,18 +1,22 @@
 package com.gerald.settlementroads.debug
 
 import com.gerald.settlementroads.planner.model.PathSegment
+import com.gerald.settlementroads.planner.placement.WeatheredRoadPalette
+import com.gerald.settlementroads.planner.placement.WeatheredRoadPiece
+import com.gerald.settlementroads.planner.placement.WeatheredWallPiece
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 
 object DebugPlanPlacer {
     fun place(level: ServerLevel, rings: List<List<BlockPos>>, segments: List<PathSegment>, isGrassy: Boolean): Int {
-        val mainBlock = if (isGrassy) Blocks.DIRT_PATH else Blocks.GRAVEL
+        val seed = if (isGrassy) 1L else 2L
         var placedBlocks = 0
 
         for (ring in rings) {
-            placedBlocks += placeBlocks(level, ring.dropLast(1), mainBlock)
+            placedBlocks += placeRoad(level, ring.dropLast(1), "debug-ring".hashCode().toLong() + seed)
         }
 
         for (segment in segments) {
@@ -32,7 +36,7 @@ object DebugPlanPlacer {
                 }
 
                 is PathSegment.Ground -> {
-                    placedBlocks += placeRoad(level, segment.blocks, mainBlock)
+                    placedBlocks += placeRoad(level, segment.blocks, "debug-ground".hashCode().toLong() + seed)
                 }
             }
         }
@@ -40,13 +44,16 @@ object DebugPlanPlacer {
         return placedBlocks
     }
 
-    private fun placeRoad(level: ServerLevel, centerline: List<BlockPos>, mainBlock: Block): Int {
+    private fun placeRoad(level: ServerLevel, centerline: List<BlockPos>, seed: Long): Int {
         var placed = 0
         for ((index, pos) in centerline.withIndex()) {
             val lateralOffsets = lateralOffsets(centerline, index)
-            placed += placeIfChanged(level, pos, mainBlock)
+            placed += placeRoadPiece(level, pos, seed, index, centerline = true)
             for (offset in lateralOffsets) {
-                placed += placeIfChanged(level, pos.offset(offset.first, 0, offset.second), mainBlock)
+                placed += placeRoadPiece(level, pos.offset(offset.first, 0, offset.second), seed, index, centerline = false)
+            }
+            for (offset in wallOffsets(lateralOffsets)) {
+                placed += placeWallPiece(level, pos.offset(offset.first, 1, offset.second), seed, index)
             }
         }
         return placed
@@ -86,8 +93,37 @@ object DebugPlanPlacer {
         }
     }
 
-    private fun placeBlocks(level: ServerLevel, blocks: List<BlockPos>, block: Block): Int =
-        blocks.sumOf { placeIfChanged(level, it, block) }
+    private fun placeRoadPiece(
+        level: ServerLevel,
+        pos: BlockPos,
+        seed: Long,
+        index: Int,
+        centerline: Boolean
+    ): Int {
+        val piece = WeatheredRoadPalette.choose(pos, seed, index, centerline) ?: return 0
+        return placeIfChanged(level, pos, roadState(piece))
+    }
+
+    private fun roadState(piece: WeatheredRoadPiece): BlockState =
+        when (piece) {
+            WeatheredRoadPiece.COBBLESTONE -> Blocks.COBBLESTONE.defaultBlockState()
+            WeatheredRoadPiece.MOSSY_COBBLESTONE -> Blocks.MOSSY_COBBLESTONE.defaultBlockState()
+        }
+
+    private fun placeWallPiece(level: ServerLevel, pos: BlockPos, seed: Long, index: Int): Int {
+        if (!level.getBlockState(pos).isAir) {
+            return 0
+        }
+
+        val piece = WeatheredRoadPalette.chooseWall(pos, seed, index) ?: return 0
+        return placeIfChanged(level, pos, wallState(piece))
+    }
+
+    private fun wallState(piece: WeatheredWallPiece): BlockState =
+        when (piece) {
+            WeatheredWallPiece.COBBLESTONE_WALL -> Blocks.COBBLESTONE_WALL.defaultBlockState()
+            WeatheredWallPiece.MOSSY_COBBLESTONE_WALL -> Blocks.MOSSY_COBBLESTONE_WALL.defaultBlockState()
+        }
 
     private fun placeVerticalColumn(
         level: ServerLevel,
@@ -106,8 +142,10 @@ object DebugPlanPlacer {
         return placed
     }
 
-    private fun placeIfChanged(level: ServerLevel, pos: BlockPos, block: Block): Int {
-        val state = block.defaultBlockState()
+    private fun placeIfChanged(level: ServerLevel, pos: BlockPos, block: Block): Int =
+        placeIfChanged(level, pos, block.defaultBlockState())
+
+    private fun placeIfChanged(level: ServerLevel, pos: BlockPos, state: BlockState): Int {
         if (level.getBlockState(pos) == state) {
             return 0
         }

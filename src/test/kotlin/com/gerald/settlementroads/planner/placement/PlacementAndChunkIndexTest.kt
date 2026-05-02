@@ -27,8 +27,8 @@ class PlacementAndChunkIndexTest {
 
     @Test
     fun placement_idempotent_for_same_plan() {
-        val once = SegmentPlacementLedger.apply(FakePlacedWorld(), connection, "minecraft:dirt_path")
-        val twice = SegmentPlacementLedger.apply(once, connection, "minecraft:dirt_path")
+        val once = SegmentPlacementLedger.apply(FakePlacedWorld(), connection, "minecraft:cobblestone")
+        val twice = SegmentPlacementLedger.apply(once, connection, "minecraft:cobblestone")
 
         assertEquals(once, twice)
     }

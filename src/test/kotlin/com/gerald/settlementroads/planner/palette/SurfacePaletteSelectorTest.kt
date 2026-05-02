@@ -7,17 +7,17 @@ import kotlin.test.assertTrue
 
 class SurfacePaletteSelectorTest {
     @Test
-    fun grassy_surface_chooses_dirt_path() {
-        assertEquals("minecraft:dirt_path", SurfacePaletteSelector.choose(true).mainBlockId)
+    fun grassy_surface_chooses_cobblestone() {
+        assertEquals("minecraft:cobblestone", SurfacePaletteSelector.choose(true).mainBlockId)
     }
 
     @Test
-    fun non_grassy_surface_chooses_gravel() {
-        assertEquals("minecraft:gravel", SurfacePaletteSelector.choose(false).mainBlockId)
+    fun non_grassy_surface_chooses_cobblestone() {
+        assertEquals("minecraft:cobblestone", SurfacePaletteSelector.choose(false).mainBlockId)
     }
 
     @Test
-    fun coarse_dirt_noise_is_sparse() {
+    fun weathering_noise_is_sparse() {
         val footprint = buildSet {
             for (z in 0..15) {
                 add(BlockPos(0, 64, z))
@@ -27,7 +27,7 @@ class SurfacePaletteSelectorTest {
         }
         val centerline = (0..15).map { BlockPos(1, 64, it) }.toSet()
 
-        val detail = SurfacePaletteSelector.chooseCoarseDirtDetail(
+        val detail = SurfacePaletteSelector.chooseSparseWeatheringDetail(
             pathFootprint = footprint,
             centerline = centerline,
             seed = 42L,

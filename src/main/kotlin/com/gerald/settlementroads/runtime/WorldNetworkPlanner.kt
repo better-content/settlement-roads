@@ -162,6 +162,10 @@ object WorldNetworkPlanner {
             return null
         }
 
+        if (path.any { terrain.columnAt(it).terrainClass == TerrainClass.FORBIDDEN }) {
+            return null
+        }
+
         val waterRuns = contiguousWaterRuns(path, terrain)
         if (waterRuns.isEmpty()) {
             return Candidate(
@@ -242,6 +246,10 @@ object WorldNetworkPlanner {
         val gScore = mutableMapOf(startNode to 0)
         val fScore = mutableMapOf(startNode to heuristic(startNode, endNode, config))
         val visited = mutableSetOf<Node>()
+        val minX = minOf(start.x, end.x) - config.maxDryPathDistanceFromLine
+        val maxX = maxOf(start.x, end.x) + config.maxDryPathDistanceFromLine
+        val minZ = minOf(start.z, end.z) - config.maxDryPathDistanceFromLine
+        val maxZ = maxOf(start.z, end.z) + config.maxDryPathDistanceFromLine
 
         while (open.isNotEmpty()) {
             val current = open.minByOrNull { fScore[it] ?: Int.MAX_VALUE } ?: break
@@ -253,8 +261,14 @@ object WorldNetworkPlanner {
             if (!visited.add(current)) {
                 continue
             }
+            if (visited.size > config.maxDryPathVisitedNodes) {
+                return emptyList()
+            }
 
             for ((nextX, nextZ) in neighbors(current.x, current.z)) {
+                if (nextX < minX || nextX > maxX || nextZ < minZ || nextZ > maxZ) {
+                    continue
+                }
                 val next = Node(nextX, nextZ)
                 if (visited.contains(next)) {
                     continue

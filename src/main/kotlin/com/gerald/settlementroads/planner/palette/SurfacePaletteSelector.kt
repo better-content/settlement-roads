@@ -3,15 +3,15 @@ package com.gerald.settlementroads.planner.palette
 import net.minecraft.core.BlockPos
 
 enum class SurfacePalette(val mainBlockId: String) {
-    GRASSY("minecraft:dirt_path"),
-    NON_GRASSY("minecraft:gravel")
+    GRASSY("minecraft:cobblestone"),
+    NON_GRASSY("minecraft:cobblestone")
 }
 
 object SurfacePaletteSelector {
     fun choose(isGrassyBiome: Boolean): SurfacePalette =
         if (isGrassyBiome) SurfacePalette.GRASSY else SurfacePalette.NON_GRASSY
 
-    fun chooseCoarseDirtDetail(
+    fun chooseSparseWeatheringDetail(
         pathFootprint: Set<BlockPos>,
         centerline: Set<BlockPos>,
         seed: Long,
