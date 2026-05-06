@@ -1,11 +1,9 @@
 package com.gerald.settlementroads.planner.placement
 
 object SegmentIdCodec {
-    private const val PLACEMENT_VERSION = 3
-
     fun ring(structureId: String): String =
-        "$structureId:ring:v$PLACEMENT_VERSION"
+        "$structureId:ring"
 
     fun connection(connectionId: String, index: Int): String =
-        "$connectionId:$index:v$PLACEMENT_VERSION"
+        "$connectionId:$index"
 }

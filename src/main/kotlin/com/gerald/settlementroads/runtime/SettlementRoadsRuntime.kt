@@ -1,6 +1,6 @@
 package com.gerald.settlementroads.runtime
 
-import com.gerald.settlementroads.SettlementRoadsMod
+import com.gerald.settlementroads.config.SettlementRoadsConfig
 import com.gerald.settlementroads.data.PlannedRoadNetwork
 import com.gerald.settlementroads.data.RoadNetworkState
 import com.gerald.settlementroads.data.SettlementRoadsSavedData
@@ -22,11 +22,16 @@ data class RuntimeStatus(
 )
 
 object SettlementRoadsRuntime {
-    private val plannerConfig = PlannerConfig()
     private val loadedChunks = mutableMapOf<Level, MutableSet<Long>>()
     private val dirtyLevels = mutableSetOf<Level>()
     private val pendingMainThreadWork = ConcurrentLinkedQueue<Pair<ServerLevel, () -> Unit>>()
     private val lastRebuildGameTime = mutableMapOf<Level, Long>()
+    private val lastPlacementGameTime = mutableMapOf<Level, Long>()
+    private const val PLACEMENT_INTERVAL_TICKS = 5L
+    private const val OBSERVED_CHUNK_REFRESH_INTERVAL_TICKS = 40L
+    private const val PLAYER_CHUNK_RADIUS = 8
+    private val config: PlannerConfig
+        get() = SettlementRoadsConfig.plannerConfig()
 
     fun onLevelLoad(event: LevelEvent.Load) {
         val level = event.level as? ServerLevel ?: return
@@ -35,7 +40,6 @@ object SettlementRoadsRuntime {
         }
         enqueue(level) {
             loadedChunks.getOrPut(level) { mutableSetOf() }
-            markDirtyNow(level)
         }
     }
 
@@ -45,6 +49,7 @@ object SettlementRoadsRuntime {
             loadedChunks.remove(level)
             dirtyLevels.remove(level)
             lastRebuildGameTime.remove(level)
+            lastPlacementGameTime.remove(level)
         }
     }
 
@@ -56,8 +61,12 @@ object SettlementRoadsRuntime {
 
         val chunkKey = event.chunk.pos.toLong()
         enqueue(level) {
-            loadedChunks.getOrPut(level) { mutableSetOf() } += chunkKey
-            markDirtyNow(level)
+            if (!isNearAnyPlayer(level, event.chunk.pos)) {
+                return@enqueue
+            }
+            if (loadedChunks.getOrPut(level) { mutableSetOf() }.add(chunkKey)) {
+                markDirtyNow(level)
+            }
         }
     }
 
@@ -66,8 +75,9 @@ object SettlementRoadsRuntime {
         val chunk = event.chunk
         val chunkKey = chunk.pos.toLong()
         enqueue(level) {
-            loadedChunks[level]?.remove(chunkKey)
-            markDirtyNow(level)
+            if (loadedChunks[level]?.remove(chunkKey) == true) {
+                markDirtyNow(level)
+            }
         }
     }
 
@@ -79,9 +89,12 @@ object SettlementRoadsRuntime {
 
         drainPendingWork(level)
         refreshObservedLoadedChunks(level)
-        val shouldPeriodicRefresh = loadedChunks[level].orEmpty().isNotEmpty() &&
+        val hasPlayers = level.players().isNotEmpty()
+        val shouldPeriodicRefresh = hasPlayers &&
+            loadedChunks[level].orEmpty().isNotEmpty() &&
             (level.gameTime % 100L == 0L) &&
             SettlementRoadsSavedData.get(level).state.worldNetwork.structures.isEmpty()
+        val plannerConfig = config
         val rebuildCooldownElapsed = level.gameTime - (lastRebuildGameTime[level] ?: Long.MIN_VALUE) >= plannerConfig.minTicksBetweenRebuilds
 
         if ((dirtyLevels.contains(level) && rebuildCooldownElapsed) || shouldPeriodicRefresh) {
@@ -89,12 +102,16 @@ object SettlementRoadsRuntime {
             rebuildFromLoadedChunks(level)
             lastRebuildGameTime[level] = level.gameTime
         }
-        placeAvailable(level)
+        if (hasPlayers && level.gameTime - (lastPlacementGameTime[level] ?: Long.MIN_VALUE) >= PLACEMENT_INTERVAL_TICKS) {
+            placeAvailable(level)
+            lastPlacementGameTime[level] = level.gameTime
+        }
     }
 
     fun rebuildFromLoadedChunks(level: ServerLevel): RuntimeStatus {
         val loadedChunkKeys = loadedChunks.getOrPut(level) { mutableSetOf() }
         val savedData = SettlementRoadsSavedData.get(level)
+        val plannerConfig = config
         val scan = WorldStructureScanner.scanLoadedChunks(level, loadedChunkKeys, savedData.state.worldStructures, plannerConfig)
         val worldNetwork = WorldNetworkPlanner.plan(level, scan.activeStructures, plannerConfig)
         val retainedAppliedSegments = savedData.state.worldNetwork.appliedSegments.intersect(worldNetwork.segmentIds())
@@ -106,13 +123,6 @@ object SettlementRoadsRuntime {
             )
         }
 
-        SettlementRoadsMod.LOGGER.info(
-            "Rebuilt world network: {} discovered structures, {} active structures, {} connections",
-            scan.discoveredStructures.size,
-            scan.activeStructures.size,
-            worldNetwork.clusters.sumOf { cluster -> cluster.connections.size }
-        )
-
         return status(level)
     }
 
@@ -121,10 +131,10 @@ object SettlementRoadsRuntime {
         val savedData = SettlementRoadsSavedData.get(level)
         val state = savedData.state
         if (state.worldNetwork.structures.isEmpty()) {
-            return PlacementResult(0, emptySet())
+            return PlacementResult(0, 0, emptySet())
         }
 
-        val placement = WorldNetworkPlacer.placeAvailable(level, state.worldNetwork, loadedChunkKeys, plannerConfig)
+        val placement = WorldNetworkPlacer.placeAvailable(level, state.worldNetwork, loadedChunkKeys, config)
         if (placement.appliedSegments.isNotEmpty()) {
             savedData.update {
                 it.copy(
@@ -187,7 +197,7 @@ object SettlementRoadsRuntime {
     }
 
     private fun refreshObservedLoadedChunks(level: ServerLevel) {
-        if (level.gameTime % 20L != 0L) {
+        if (level.gameTime % OBSERVED_CHUNK_REFRESH_INTERVAL_TICKS != 0L) {
             return
         }
 
@@ -204,11 +214,11 @@ object SettlementRoadsRuntime {
     }
 
     private fun observedLoadedChunks(level: ServerLevel): Set<Long> {
-        val anchors = level.players().map(ServerPlayer::chunkPosition).ifEmpty { listOf(ChunkPos(level.sharedSpawnPos)) }
+        val anchors = level.players().map(ServerPlayer::chunkPosition)
         return buildSet {
             for (anchor in anchors) {
-                for (chunkX in (anchor.x - 8)..(anchor.x + 8)) {
-                    for (chunkZ in (anchor.z - 8)..(anchor.z + 8)) {
+                for (chunkX in (anchor.x - PLAYER_CHUNK_RADIUS)..(anchor.x + PLAYER_CHUNK_RADIUS)) {
+                    for (chunkZ in (anchor.z - PLAYER_CHUNK_RADIUS)..(anchor.z + PLAYER_CHUNK_RADIUS)) {
                         if (level.chunkSource.getChunkNow(chunkX, chunkZ) != null) {
                             add(ChunkPos.asLong(chunkX, chunkZ))
                         }
@@ -217,6 +227,13 @@ object SettlementRoadsRuntime {
             }
         }
     }
+
+    private fun isNearAnyPlayer(level: ServerLevel, chunk: ChunkPos): Boolean =
+        level.players().any { player ->
+            val playerChunk = player.chunkPosition()
+            kotlin.math.abs(playerChunk.x - chunk.x) <= PLAYER_CHUNK_RADIUS &&
+                kotlin.math.abs(playerChunk.z - chunk.z) <= PLAYER_CHUNK_RADIUS
+        }
 
     private fun PlannedRoadNetwork.segmentIds(): Set<String> =
         buildSet {

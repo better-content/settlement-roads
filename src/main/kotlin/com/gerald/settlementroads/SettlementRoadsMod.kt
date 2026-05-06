@@ -1,6 +1,7 @@
 package com.gerald.settlementroads
 
 import com.gerald.settlementroads.command.SettlementRoadsDebugCommands
+import com.gerald.settlementroads.config.SettlementRoadsConfig
 import com.gerald.settlementroads.runtime.SettlementRoadsRuntime
 import com.gerald.settlementroads.worldgen.SettlementRoadsWorldgen
 import com.mojang.logging.LogUtils
@@ -12,6 +13,7 @@ import org.slf4j.Logger
 @Mod(SettlementRoadsMod.MOD_ID)
 class SettlementRoadsMod {
     init {
+        SettlementRoadsConfig.register()
         SettlementRoadsWorldgen.register(FMLJavaModLoadingContext.get().modEventBus)
         MinecraftForge.EVENT_BUS.addListener(SettlementRoadsDebugCommands::register)
         MinecraftForge.EVENT_BUS.addListener(SettlementRoadsRuntime::onLevelLoad)
@@ -19,12 +21,10 @@ class SettlementRoadsMod {
         MinecraftForge.EVENT_BUS.addListener(SettlementRoadsRuntime::onChunkLoad)
         MinecraftForge.EVENT_BUS.addListener(SettlementRoadsRuntime::onChunkUnload)
         MinecraftForge.EVENT_BUS.addListener(SettlementRoadsRuntime::onLevelTick)
-        LOGGER.info("Loaded mod {}", MOD_ID)
     }
 
     companion object {
         const val MOD_ID: String = "settlementroads"
-        const val PLANNER_VERSION: Int = 1
         val LOGGER: Logger = LogUtils.getLogger()
     }
 }

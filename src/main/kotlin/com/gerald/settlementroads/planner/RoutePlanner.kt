@@ -104,6 +104,17 @@ object RoutePlanner {
             return emptyList()
         }
 
+        if (!config.allowWaterBridges) {
+            val reroutePath = if (terrainProfile.allowDetour) {
+                detourPath(directPath[waterRun.first - 1], directPath[waterRun.last + 1], terrainProfile)
+            } else {
+                emptyList()
+            }
+            return reroutePath.takeIf { it.isNotEmpty() }?.let {
+                listOf(PathSegment.Ground(applySurfaceY(it, terrainProfile)))
+            } ?: emptyList()
+        }
+
         val bankBefore = directPath[waterRun.first - 1]
         val bankAfter = directPath[waterRun.last + 1]
         val waterPath = directPath.subList(waterRun.first, waterRun.last + 1)

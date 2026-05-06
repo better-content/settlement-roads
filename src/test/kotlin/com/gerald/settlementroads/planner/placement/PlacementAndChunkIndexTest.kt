@@ -2,6 +2,7 @@ package com.gerald.settlementroads.planner.placement
 
 import com.gerald.settlementroads.planner.model.ConnectionPlan
 import com.gerald.settlementroads.planner.model.PathSegment
+import com.gerald.settlementroads.planner.model.SupportColumn
 import net.minecraft.core.BlockPos
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -40,5 +41,52 @@ class PlacementAndChunkIndexTest {
 
         assertEquals(first, second)
         assertEquals(setOf(0, 1), first.map { it.chunkX }.toSet())
+    }
+
+    @Test
+    fun segment_ledger_is_idempotent_across_repeated_segments() {
+        val world = FakePlacedWorld()
+        val bridgeConnection = connection.copy(
+            segments = listOf(
+                PathSegment.Bridge(
+                    blocks = listOf(BlockPos(14, 64, 0), BlockPos(15, 64, 0)),
+                    supports = listOf(SupportColumn(14, 0, 64, 63, 1, reachedSolid = true))
+                ),
+                PathSegment.Ground(
+                    listOf(
+                        BlockPos(14, 64, 0),
+                        BlockPos(15, 64, 0),
+                        BlockPos(16, 64, 0)
+                    )
+                )
+            )
+        )
+
+        val withBridgeThenGround = SegmentPlacementLedger.apply(
+            SegmentPlacementLedger.apply(world, bridgeConnection, "minecraft:stone"),
+            bridgeConnection,
+            "minecraft:cobblestone"
+        )
+        val withBridgeOnly = SegmentPlacementLedger.apply(world, bridgeConnection, "minecraft:stone")
+
+        assertEquals(withBridgeOnly, withBridgeThenGround)
+        assertEquals("minecraft:stone", withBridgeThenGround.blocks[BlockPos(16, 64, 0)])
+    }
+
+    @Test
+    fun bridge_segment_indexes_chunks_by_each_endpoints() {
+        val bridgeConnection = connection.copy(
+            segments = listOf(
+                PathSegment.Bridge(
+                    blocks = listOf(BlockPos(14, 64, 0), BlockPos(15, 64, 16), BlockPos(16, 64, 32)),
+                    supports = emptyList()
+                )
+            )
+        )
+
+        val stamps = SegmentChunkIndexer.index(bridgeConnection)
+
+        assertEquals(setOf(0, 1), stamps.map { it.chunkX }.toSet())
+        assertEquals(setOf(0, 1, 2), stamps.map { it.chunkZ }.toSet())
     }
 }

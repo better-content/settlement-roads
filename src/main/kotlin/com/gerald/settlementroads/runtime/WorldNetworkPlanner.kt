@@ -174,6 +174,10 @@ object WorldNetworkPlanner {
             )
         }
 
+        if (!config.allowWaterBridges) {
+            return null
+        }
+
         if (waterRuns.any { it.first == 0 || it.last == path.lastIndex }) {
             return null
         }

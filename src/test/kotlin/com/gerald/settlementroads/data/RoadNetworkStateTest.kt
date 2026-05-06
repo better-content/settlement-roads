@@ -1,6 +1,7 @@
 package com.gerald.settlementroads.data
 
 import com.gerald.settlementroads.command.DebugScenarioId
+import com.gerald.settlementroads.planner.PlannerConfig
 import com.gerald.settlementroads.planner.model.PathSegment
 import net.minecraft.core.BlockPos
 import kotlin.test.Test
@@ -29,7 +30,11 @@ class RoadNetworkStateTest {
 
     @Test
     fun debug_cave_scenario_supports_continue_to_true_solid() {
-        val network = PlannedRoadNetwork.debugScenario(BlockPos(0, 64, 0), DebugScenarioId.CAVE_UNDER_RIVERBED)
+        val network = PlannedRoadNetwork.debugScenario(
+            BlockPos(0, 64, 0),
+            DebugScenarioId.CAVE_UNDER_RIVERBED,
+            config = PlannerConfig(allowWaterBridges = true)
+        )
         val bridge = network.clusters.flatMap { it.connections }.flatMap { it.segments }.first { it is PathSegment.Bridge }
 
         bridge as PathSegment.Bridge

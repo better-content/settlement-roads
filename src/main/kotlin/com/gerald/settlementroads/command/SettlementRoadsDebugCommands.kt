@@ -1,5 +1,6 @@
 package com.gerald.settlementroads.command
 
+import com.gerald.settlementroads.config.SettlementRoadsConfig
 import com.gerald.settlementroads.data.PlannedRoadNetwork
 import com.gerald.settlementroads.data.SettlementRoadsSavedData
 import com.gerald.settlementroads.debug.DebugPlanPlacer
@@ -14,7 +15,8 @@ import net.minecraft.network.chat.Component
 import net.minecraftforge.event.RegisterCommandsEvent
 
 object SettlementRoadsDebugCommands {
-    private val plannerConfig = PlannerConfig()
+    private val plannerConfig: PlannerConfig
+        get() = SettlementRoadsConfig.plannerConfig()
 
     fun register(event: RegisterCommandsEvent) {
         event.dispatcher.register(
@@ -181,8 +183,8 @@ object SettlementRoadsDebugCommands {
         val source = context.source
         val placement = SettlementRoadsRuntime.placeAvailable(source.level)
         source.sendSuccess(
-            {
-                Component.literal(
+                    {
+                        Component.literal(
                     "Placed ${placement.placedBlocks} block(s) and applied ${placement.appliedSegments.size} segment(s) from the world network."
                 )
             },

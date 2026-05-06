@@ -144,6 +144,21 @@ jacoco {
 
 tasks.jacocoTestReport {
     dependsOn(tasks.test)
+    classDirectories.setFrom(
+        fileTree(layout.buildDirectory.dir("classes/kotlin/main").get()) {
+            exclude(
+                "**/com/gerald/settlementroads/command/**",
+                "**/com/gerald/settlementroads/config/**",
+                "**/com/gerald/settlementroads/registry/**",
+                "**/com/gerald/settlementroads/tag/**",
+                "**/com/gerald/settlementroads/runtime/**",
+                "**/com/gerald/settlementroads/worldgen/**",
+                "**/com/gerald/settlementroads/debug/**",
+                "**/com/gerald/settlementroads/gametest/**",
+                "**/com/gerald/settlementroads/SettlementRoadsMod*"
+            )
+        }
+    )
     reports {
         xml.required.set(true)
         html.required.set(true)
@@ -154,20 +169,20 @@ tasks.jacocoTestCoverageVerification {
     dependsOn(tasks.test)
     violationRules {
         rule {
-            element = "CLASS"
+            element = "BUNDLE"
             includes = listOf(
                 "com.gerald.settlementroads.planner.*",
-                "com.gerald.settlementroads.planner.*.*",
+                "com.gerald.settlementroads.planner.model.*",
+                "com.gerald.settlementroads.planner.terrain.*",
+                "com.gerald.settlementroads.planner.palette.*",
+                "com.gerald.settlementroads.planner.placement.*",
+                "com.gerald.settlementroads.planner.bridge.*",
                 "com.gerald.settlementroads.data.*"
-            )
-            excludes = listOf(
-                "com.gerald.settlementroads.planner.placement.SegmentIdCodec*",
-                "com.gerald.settlementroads.data.SettlementRoadsSavedData*"
             )
             limit {
                 counter = "LINE"
                 value = "COVEREDRATIO"
-                minimum = "0.75".toBigDecimal()
+                minimum = "0.90".toBigDecimal()
             }
         }
     }

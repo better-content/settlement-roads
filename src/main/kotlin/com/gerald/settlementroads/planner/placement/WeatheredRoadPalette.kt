@@ -13,9 +13,9 @@ enum class WeatheredWallPiece {
 }
 
 object WeatheredRoadPalette {
-    private const val GUIDE_INTERVAL = 11
-    private const val GUIDE_LENGTH = 2
-    private const val WALL_INTERVAL = 23
+    private const val GUIDE_INTERVAL = 18
+    private const val GUIDE_LENGTH = 1
+    private const val WALL_INTERVAL = 26
 
     fun choose(pos: BlockPos, seed: Long, index: Int, centerline: Boolean): WeatheredRoadPiece? {
         if (!inGuideMark(seed, index, centerline)) {
@@ -23,7 +23,7 @@ object WeatheredRoadPalette {
         }
 
         val roll = roll(pos, seed)
-        if (!centerline && roll < 45) {
+        if (!centerline && roll < 65) {
             return null
         }
 

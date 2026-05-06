@@ -17,6 +17,7 @@ import kotlin.test.assertTrue
 
 class RoutePlannerTest {
     private val config = PlannerConfig()
+    private val bridgeEnabledConfig = PlannerConfig(allowWaterBridges = true)
 
     @Test
     fun route_uses_bridge_when_short_span_is_cheaper_than_detour() {
@@ -38,12 +39,41 @@ class RoutePlannerTest {
             }
         )
 
-        val connections = RoutePlanner.planConnections(structures, rings, terrain, config)
+        val connections = RoutePlanner.planConnections(structures, rings, terrain, bridgeEnabledConfig)
         val bridge = connections.single().segments.single { it is PathSegment.Bridge }
 
         assertIs<PathSegment.Bridge>(bridge)
         assertEquals(5, bridge.blocks.size)
         assertTrue(bridge.supports.all { it.reachedSolid })
+    }
+
+    @Test
+    fun route_skips_bridge_when_disabled_in_default_config() {
+        val structures = twinStructures()
+        val rings = structures.associate { it.id to RingPlanner.plan(it) }
+        val terrain = RouteTerrainProfile(
+            isGrassyBiome = true,
+            defaultSurfaceY = 64,
+            allowDetour = true,
+            detourOffsetZ = 5,
+            columns = (-2..2).associate { x ->
+                (x to 0) to RouteTerrainProfile.waterColumn(
+                    surfaceY = 64,
+                    probes = listOf(
+                        SupportProbe(64, SupportMaterialClass.WATER),
+                        SupportProbe(63, SupportMaterialClass.AIR),
+                        SupportProbe(62, SupportMaterialClass.SOLID_SUPPORT)
+                    )
+                )
+            }
+        )
+
+        val connections = RoutePlanner.planConnections(structures, rings, terrain, config)
+        val segments = connections.single().segments
+
+        assertTrue(segments.all { it is PathSegment.Ground })
+        assertEquals(1, segments.size)
+        assertTrue(segments.first() is PathSegment.Ground)
     }
 
     @Test
@@ -67,7 +97,7 @@ class RoutePlannerTest {
             }
         )
 
-        val connections = RoutePlanner.planConnections(structures, rings, terrain, config)
+        val connections = RoutePlanner.planConnections(structures, rings, terrain, bridgeEnabledConfig)
         val ground = connections.single().segments.single()
 
         assertIs<PathSegment.Ground>(ground)

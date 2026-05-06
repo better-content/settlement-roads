@@ -17,6 +17,7 @@ import net.minecraft.world.level.block.state.BlockState
 
 data class PlacementResult(
     val placedBlocks: Int,
+    val placedWallBlocks: Int,
     val appliedSegments: Set<String>
 )
 
@@ -28,6 +29,7 @@ object WorldNetworkPlacer {
         config: PlannerConfig = PlannerConfig()
     ): PlacementResult {
         var placedBlocks = 0
+        var placedWallBlocks = 0
         val appliedSegments = mutableSetOf<String>()
         val chunkStampsBySegment = network.chunkStamps.groupBy { it.segmentId }
         var remainingSegments = config.maxSegmentsPlacedPerTick
@@ -50,7 +52,9 @@ object WorldNetworkPlacer {
                 continue
             }
 
-            placedBlocks += placeRoad(level, ringBlocks, segmentId)
+            val roadPlacement = placeRoad(level, ringBlocks, segmentId)
+            placedBlocks += roadPlacement.placedBlocks
+            placedWallBlocks += roadPlacement.placedWallBlocks
             appliedSegments += segmentId
             remainingSegments--
         }
@@ -82,7 +86,11 @@ object WorldNetworkPlacer {
 
                     placedBlocks += when (segment) {
                         is PathSegment.Bridge -> placeBridge(level, segment)
-                        is PathSegment.Ground -> placeRoad(level, segment.blocks, segmentId)
+                        is PathSegment.Ground -> {
+                            val roadPlacement = placeRoad(level, segment.blocks, segmentId)
+                            placedWallBlocks += roadPlacement.placedWallBlocks
+                            roadPlacement.placedBlocks
+                        }
                     }
                     appliedSegments += segmentId
                     remainingSegments--
@@ -90,7 +98,7 @@ object WorldNetworkPlacer {
             }
         }
 
-        return PlacementResult(placedBlocks, appliedSegments)
+        return PlacementResult(placedBlocks, placedWallBlocks, appliedSegments)
     }
 
     fun ringSegmentId(structureId: String): String =
@@ -99,29 +107,32 @@ object WorldNetworkPlacer {
     fun connectionSegmentId(connectionId: String, index: Int): String =
         SegmentIdCodec.connection(connectionId, index)
 
-    private fun placeRoad(level: ServerLevel, centerline: List<BlockPos>, seedKey: String): Int {
+    private data class RoadPlacement(val placedBlocks: Int, val placedWallBlocks: Int)
+
+    private fun placeRoad(level: ServerLevel, centerline: List<BlockPos>, seedKey: String): RoadPlacement {
         if (centerline.isEmpty()) {
-            return 0
+            return RoadPlacement(0, 0)
         }
 
         val snappedCenterline = centerline.map { snapToSurface(level, it) }
         val seed = seedKey.hashCode().toLong()
-        var placed = 0
+        var placedBlocks = 0
+        var placedWallBlocks = 0
 
         for ((index, pos) in snappedCenterline.withIndex()) {
             val lateralOffsets = lateralOffsets(snappedCenterline, index)
-            placed += placeRoadBlockIfRoadable(level, pos, seed, index, centerline = true)
+            placedBlocks += placeRoadBlockIfRoadable(level, pos, seed, index, centerline = true)
             for ((offsetX, offsetZ) in lateralOffsets) {
                 val edge = snapToSurface(level, pos.offset(offsetX, 0, offsetZ))
-                placed += placeRoadBlockIfRoadable(level, edge, seed, index, centerline = false)
+                placedBlocks += placeRoadBlockIfRoadable(level, edge, seed, index, centerline = false)
             }
             for ((offsetX, offsetZ) in wallOffsets(lateralOffsets)) {
                 val wallBase = snapToSurface(level, pos.offset(offsetX, 0, offsetZ))
-                placed += placeWallIfRoadable(level, wallBase, seed, index)
+                placedWallBlocks += placeWallIfRoadable(level, wallBase, seed, index)
             }
         }
 
-        return placed
+        return RoadPlacement(placedBlocks, placedWallBlocks)
     }
 
     private fun snapToSurface(level: ServerLevel, pos: BlockPos): BlockPos {

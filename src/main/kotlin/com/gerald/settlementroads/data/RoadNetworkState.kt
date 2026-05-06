@@ -1,6 +1,5 @@
 package com.gerald.settlementroads.data
 
-import com.gerald.settlementroads.SettlementRoadsMod
 import com.gerald.settlementroads.command.DebugScenarioId
 import com.gerald.settlementroads.command.createDefinition
 import com.gerald.settlementroads.planner.ClusterPlanner
@@ -21,7 +20,6 @@ import net.minecraft.nbt.Tag
 import net.minecraft.world.level.levelgen.structure.BoundingBox
 
 data class PlannedRoadNetwork(
-    val plannerVersion: Int = SettlementRoadsMod.PLANNER_VERSION,
     val structures: List<StructureNode> = emptyList(),
     val clusters: List<ClusterPlan> = emptyList(),
     val rings: List<RingPath> = emptyList(),
@@ -30,7 +28,6 @@ data class PlannedRoadNetwork(
 ) {
     fun toTag(): CompoundTag {
         val tag = CompoundTag()
-        tag.putInt("plannerVersion", plannerVersion)
         tag.put("structures", ListTag().apply { structures.forEach { add(it.toTag()) } })
         tag.put("clusters", ListTag().apply { clusters.forEach { add(it.toTag()) } })
         tag.put("rings", ListTag().apply { rings.forEach { add(it.toTag()) } })
@@ -47,7 +44,6 @@ data class PlannedRoadNetwork(
             val chunkStamps = tag.getList("chunkStamps", Tag.TAG_COMPOUND.toInt()).map { chunkPlacementStampFromTag(it as CompoundTag) }.toSet()
 
             return PlannedRoadNetwork(
-                plannerVersion = tag.getInt("plannerVersion"),
                 structures = structures,
                 clusters = clusters,
                 rings = rings,
