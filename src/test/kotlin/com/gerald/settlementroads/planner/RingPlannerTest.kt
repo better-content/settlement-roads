@@ -49,6 +49,25 @@ class RingPlannerTest {
     }
 
     @Test
+    fun ring_has_no_duplicate_cells_except_closing_point() {
+        val ring = RingPlanner.plan(structure)
+        val openPerimeter = ring.perimeter.dropLast(1)
+
+        assertEquals(openPerimeter.size, openPerimeter.toSet().size)
+    }
+
+    @Test
+    fun ring_walks_only_axis_adjacent_steps() {
+        val ring = RingPlanner.plan(structure)
+
+        ring.perimeter.zipWithNext().forEach { (left, right) ->
+            val step = kotlin.math.abs(left.x - right.x) + kotlin.math.abs(left.z - right.z)
+            assertEquals(1, step, "Ring step from $left to $right should be axis-adjacent")
+            assertEquals(left.y, right.y)
+        }
+    }
+
+    @Test
     fun anchor_chooses_nearest_ring_edge_point() {
         val ring = RingPlanner.plan(structure)
         val anchor = RingPlanner.chooseAnchor(ring, BlockPos(20, 64, 0))

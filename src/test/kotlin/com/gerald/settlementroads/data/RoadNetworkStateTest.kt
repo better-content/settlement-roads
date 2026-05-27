@@ -43,6 +43,20 @@ class RoadNetworkStateTest {
     }
 
     @Test
+    fun debug_river_scenarios_bridge_when_enabled() {
+        listOf(DebugScenarioId.GRASSY_RIVER_CROSSING, DebugScenarioId.ROCKY_CROSSING).forEach { scenario ->
+            val network = PlannedRoadNetwork.debugScenario(
+                BlockPos(0, 64, 0),
+                scenario,
+                config = PlannerConfig(allowWaterBridges = true)
+            )
+            val segments = network.clusters.flatMap { it.connections }.flatMap { it.segments }
+
+            assertTrue(segments.any { it is PathSegment.Bridge }, "$scenario should produce a bridge when bridge routing is enabled")
+        }
+    }
+
+    @Test
     fun debug_wide_river_scenario_detours_without_bridge() {
         val network = PlannedRoadNetwork.debugScenario(BlockPos(0, 64, 0), DebugScenarioId.TOO_WIDE_RIVER)
         val segments = network.clusters.flatMap { it.connections }.flatMap { it.segments }

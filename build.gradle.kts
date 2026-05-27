@@ -84,6 +84,7 @@ sourceSets.named("main") {
 
 val syncGameTestStructures by tasks.registering(Copy::class) {
     from("gameteststructures")
+    from("src/main/resources/gameteststructures")
     into(file("run/gameteststructures"))
 }
 
@@ -136,6 +137,12 @@ tasks.withType<Test>().configureEach {
 
 tasks.matching { it.name == "prepareRunGameTestServer" }.configureEach {
     dependsOn(syncGameTestStructures)
+}
+
+tasks.register("headlessGameTest") {
+    group = "verification"
+    description = "Runs Forge game tests in a headless dedicated server."
+    dependsOn(tasks.named("runGameTestServer"))
 }
 
 jacoco {

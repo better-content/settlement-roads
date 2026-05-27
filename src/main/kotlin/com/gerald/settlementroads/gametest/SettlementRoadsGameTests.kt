@@ -20,7 +20,7 @@ import net.minecraftforge.gametest.GameTestHolder
 @GameTestHolder(SettlementRoadsMod.MOD_ID)
 @Mod.EventBusSubscriber(modid = SettlementRoadsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 object SettlementRoadsGameTests {
-    private val config = PlannerConfig()
+    private val config = PlannerConfig(allowWaterBridges = true)
 
     @JvmStatic
     @SubscribeEvent
@@ -33,7 +33,9 @@ object SettlementRoadsGameTests {
     fun grassyRiverCrossingProducesBridge(helper: GameTestHelper) {
         val (_, _, segments, _) = spawnAndPlace(helper, DebugScenarioId.GRASSY_RIVER_CROSSING)
 
-        val bridge = segments.first { it is PathSegment.Bridge } as PathSegment.Bridge
+        val bridges = segments.filterIsInstance<PathSegment.Bridge>()
+        helper.assertTrue(bridges.isNotEmpty(), "Grassy river crossing should produce at least one bridge segment")
+        val bridge = bridges.first()
         helper.assertTrue(bridge.supports.all { it.reachedSolid }, "Bridge supports should reach solid terrain")
         helper.assertTrue(
             helper.level.getBlockState(bridge.blocks.first()).`is`(Blocks.STONE_BRICKS),
@@ -94,6 +96,26 @@ object SettlementRoadsGameTests {
 
         helper.assertTrue(placedOnce > 0, "Initial placement should change the world")
         helper.assertTrue(placedTwice == 0, "Second placement should be idempotent")
+        helper.succeed()
+    }
+
+    @JvmStatic
+    @GameTest(template = "blank")
+    fun chunkBoundaryScenarioPlacesRoadAcrossBothChunks(helper: GameTestHelper) {
+        val (_, network, segments, placed) = spawnAndPlace(helper, DebugScenarioId.CHUNK_BOUNDARY_SPLIT)
+        val segmentChunks = segments
+            .flatMap {
+                when (it) {
+                    is PathSegment.Bridge -> it.blocks
+                    is PathSegment.Ground -> it.blocks
+                }
+            }
+            .map { it.x shr 4 }
+            .toSet()
+
+        helper.assertTrue(placed > 0, "Chunk-boundary scenario should place road blocks")
+        helper.assertTrue(network.chunkStamps.map { it.chunkX }.toSet().size >= 2, "Plan should record placement stamps in both chunks")
+        helper.assertTrue(segmentChunks.size >= 2, "Road segments should cross the chunk boundary")
         helper.succeed()
     }
 
