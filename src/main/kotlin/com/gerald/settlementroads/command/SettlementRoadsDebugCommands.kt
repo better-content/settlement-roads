@@ -11,7 +11,6 @@ import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
-import net.minecraft.network.chat.Component
 import net.minecraftforge.event.RegisterCommandsEvent
 
 object SettlementRoadsDebugCommands {
@@ -65,11 +64,6 @@ object SettlementRoadsDebugCommands {
                 network = PlannedRoadNetwork()
             )
         }
-
-        source.sendSuccess(
-            { Component.literal("Selected debug scenario ${scenario.id} at ${origin.x}, ${origin.y}, ${origin.z}") },
-            false
-        )
         return 1
     }
 
@@ -91,16 +85,6 @@ object SettlementRoadsDebugCommands {
                 network = network
             )
         }
-
-        source.sendSuccess(
-            {
-                Component.literal(
-                    "Planned ${network.clusters.size} cluster(s), ${network.rings.size} ring(s), " +
-                        "${network.clusters.sumOf { cluster -> cluster.connections.size }} connection(s)"
-                )
-            },
-            false
-        )
         return 1
     }
 
@@ -110,23 +94,13 @@ object SettlementRoadsDebugCommands {
         val scenario = state.selectedScenarioId?.let(DebugScenarioId::parse) ?: DebugScenarioId.FLAT_GRASSY_TWINS
         val level = source.level
 
-        val placedBlocks = DebugPlanPlacer.place(
+        DebugPlanPlacer.place(
             level = level,
             rings = state.network.rings.map { it.perimeter },
             segments = state.network.clusters.flatMap { it.connections }.flatMap { it.segments },
             isGrassy = scenario.isGrassy
         )
 
-        val connectionCount = state.network.clusters.sumOf { it.connections.size }
-
-        source.sendSuccess(
-            {
-                Component.literal(
-                    "Placed $placedBlocks block(s) for ${state.network.rings.size} ring(s) and $connectionCount connection(s)."
-                )
-            },
-            false
-        )
         return 1
     }
 
@@ -145,58 +119,30 @@ object SettlementRoadsDebugCommands {
                 network = PlannedRoadNetwork()
             )
         }
-        source.sendSuccess({ Component.literal("Cleared debug planner state") }, false)
         return 1
     }
 
     private fun worldStatus(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
-        val status = SettlementRoadsRuntime.status(source.level)
-        source.sendSuccess(
-            {
-                Component.literal(
-                    "World state: ${status.knownStructures} discovered, ${status.activeStructures} active, " +
-                        "${status.connections} connection(s), ${status.appliedSegments} applied segment(s)."
-                )
-            },
-            false
-        )
+        SettlementRoadsRuntime.status(source.level)
         return 1
     }
 
     private fun worldScanLoaded(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
-        val status = SettlementRoadsRuntime.rebuildFromLoadedChunks(source.level)
-        source.sendSuccess(
-            {
-                Component.literal(
-                    "Rebuilt world network from loaded chunks: ${status.knownStructures} discovered, " +
-                        "${status.activeStructures} active, ${status.connections} connection(s)."
-                )
-            },
-            false
-        )
+        SettlementRoadsRuntime.rebuildFromLoadedChunks(source.level)
         return 1
     }
 
     private fun worldPlaceLoaded(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
-        val placement = SettlementRoadsRuntime.placeAvailable(source.level)
-        source.sendSuccess(
-                    {
-                        Component.literal(
-                    "Placed ${placement.placedBlocks} block(s) and applied ${placement.appliedSegments.size} segment(s) from the world network."
-                )
-            },
-            false
-        )
+        SettlementRoadsRuntime.placeAvailable(source.level)
         return 1
     }
 
     private fun worldClear(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         SettlementRoadsRuntime.clear(source.level)
-        source.sendSuccess({ Component.literal("Cleared world planner state") }, false)
         return 1
     }
 }
