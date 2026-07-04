@@ -32,7 +32,6 @@ Current implementation slice:
 
 Immediate implementation entry points:
 
-- `./gradlew test`
-- `./gradlew build`
-- `./gradlew runGameTestServer`
+- `./gradlew verifyFast`
+- `./gradlew verifyFull`
 - `./gradlew runData`

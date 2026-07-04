@@ -295,8 +295,8 @@ Data generation should validate references and keep scenario resources synchroni
 
 Expected Gradle entry points during implementation:
 
-- `./gradlew test`
-- `./gradlew runGameTestServer`
+- `./gradlew verifyFast`
+- `./gradlew verifyFull`
 - `./gradlew runData`
 
 Minimum source layout expected by this plan:
