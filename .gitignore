@@ -9,7 +9,3 @@ logs/
 *.iml
 bin/
 .codex
-eula.txt
-server.properties
-options.txt
-usercache.json
