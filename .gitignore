@@ -9,3 +9,5 @@ logs/
 *.iml
 bin/
 .codex
+eula.txt
+server.properties
