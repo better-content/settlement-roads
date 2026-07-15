@@ -36,6 +36,7 @@ object SettlementRoadsGameTests {
         val bridges = segments.filterIsInstance<PathSegment.Bridge>()
         helper.assertTrue(bridges.isNotEmpty(), "Grassy river crossing should produce at least one bridge segment")
         val bridge = bridges.first()
+        helper.assertTrue(bridge.supports.isNotEmpty(), "Bridge should create support columns")
         helper.assertTrue(bridge.supports.all { it.reachedSolid }, "Bridge supports should reach solid terrain")
         helper.assertTrue(
             helper.level.getBlockState(bridge.blocks.first()).`is`(Blocks.STONE_BRICKS),
@@ -76,6 +77,7 @@ object SettlementRoadsGameTests {
         val (_, _, segments, _) = spawnAndPlace(helper, DebugScenarioId.CAVE_UNDER_RIVERBED)
         val bridge = segments.filterIsInstance<PathSegment.Bridge>().first()
 
+        helper.assertTrue(bridge.supports.isNotEmpty(), "Cave scenario bridge should create support columns")
         helper.assertTrue(
             bridge.supports.all { support -> support.reachedSolid && support.toY <= support.fromY - 4 },
             "Cave scenario supports should continue past the hollow riverbed"

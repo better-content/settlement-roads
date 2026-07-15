@@ -44,7 +44,7 @@ class PlacementAndChunkIndexTest {
     }
 
     @Test
-    fun segment_ledger_is_idempotent_across_repeated_segments() {
+    fun segment_ledger_preserves_existing_blocks_across_repeated_positions() {
         val world = FakePlacedWorld()
         val bridgeConnection = connection.copy(
             segments = listOf(
@@ -61,16 +61,29 @@ class PlacementAndChunkIndexTest {
                 )
             )
         )
+        val overlappingGroundConnection = connection.copy(
+            segments = listOf(
+                PathSegment.Ground(
+                    listOf(
+                        BlockPos(14, 64, 0),
+                        BlockPos(15, 64, 0),
+                        BlockPos(16, 64, 0)
+                    )
+                )
+            )
+        )
 
         val withBridgeThenGround = SegmentPlacementLedger.apply(
             SegmentPlacementLedger.apply(world, bridgeConnection, "minecraft:stone"),
-            bridgeConnection,
-            "minecraft:cobblestone"
+            overlappingGroundConnection,
+            "minecraft:cobblestone",
         )
         val withBridgeOnly = SegmentPlacementLedger.apply(world, bridgeConnection, "minecraft:stone")
 
-        assertEquals(withBridgeOnly, withBridgeThenGround)
-        assertEquals("minecraft:stone", withBridgeThenGround.blocks[BlockPos(16, 64, 0)])
+        assertEquals("minecraft:stone", withBridgeThenGround.blocks[BlockPos(14, 64, 0)])
+        assertEquals("minecraft:stone", withBridgeThenGround.blocks[BlockPos(15, 64, 0)])
+        assertEquals("minecraft:cobblestone", withBridgeThenGround.blocks[BlockPos(16, 64, 0)])
+        assertEquals(withBridgeOnly.appliedSegments.size + 1, withBridgeThenGround.appliedSegments.size)
     }
 
     @Test

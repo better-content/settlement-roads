@@ -44,6 +44,7 @@ class RoutePlannerTest {
 
         assertIs<PathSegment.Bridge>(bridge)
         assertEquals(5, bridge.blocks.size)
+        assertTrue(bridge.supports.isNotEmpty(), "bridge should create support columns")
         assertTrue(bridge.supports.all { it.reachedSolid })
     }
 
