@@ -35,3 +35,7 @@ Immediate implementation entry points:
 - `./gradlew verifyFast`
 - `./gradlew verifyFull`
 - `./gradlew runData`
+
+## Community and support
+
+For modpack and mod discussion, playtest feedback, and bug reports, join the [Better Content Discord](https://discord.gg/EkRnZbzqS9).
