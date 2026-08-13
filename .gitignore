@@ -2,12 +2,11 @@
 build/
 out/
 run/
+run-*/
 logs/
-*.log
-*.class
 .idea/
+.vscode/
 *.iml
-bin/
-.codex
-eula.txt
-server.properties
+*.log
+.DS_Store
+Thumbs.db

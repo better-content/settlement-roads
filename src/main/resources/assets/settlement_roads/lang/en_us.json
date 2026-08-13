@@ -1,0 +1,6 @@
+{
+  "commands.settlement_roads.debug.selected": "Selected debug scenario %s at %s, %s, %s",
+  "commands.settlement_roads.debug.planned": "Planned %s cluster(s), %s ring(s), %s connection(s)",
+  "commands.settlement_roads.debug.place_ready": "Placement scaffold ready. Current plan has %s ring(s) and %s connection(s).",
+  "commands.settlement_roads.debug.cleared": "Cleared debug planner state"
+}

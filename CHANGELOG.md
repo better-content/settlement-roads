@@ -11,10 +11,10 @@
 
 ### Changed
 
-- Renamed the codebase from the template namespace to the `settlementroads` mod namespace
+- Renamed the codebase from the template namespace to the `settlement_roads` mod namespace
 - Added repo execution notes for tests, GameTests, and datagen entry points
 - Removed the legacy `fissionreactor` code and assets instead of excluding them from the build
-- Trimmed the Gradle configuration and mod metadata down to the dependencies used by `settlementroads`
+- Trimmed the Gradle configuration and mod metadata down to the dependencies used by `settlement_roads`
 
 ### Implemented
 
@@ -27,3 +27,9 @@
 - Added terrain-aware route planning for short-span bridges, wide-river detours, and cave-support descent probes
 - Added debug placement for widened roads, stone-brick bridge decks, parapet walls, and vertical support columns
 - Added in-world GameTests for grassy river bridges, rocky gravel routing, cave support descent, wide-river detours, and rerun idempotence
+
+### Identity normalization
+
+- Standardized the project as **Settlement Roads** with mod ID `settlement_roads`, artifact `settlement-roads`, and package `com.bettercontent.settlementroads`.
+- Adopted Java 17 and Forge 1.20.1-47.4.13 as the build baseline without changing the project version.
+- This is a clean break; legacy worlds, configurations, and integrations are not migrated.

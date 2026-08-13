@@ -24,7 +24,7 @@ group = property("mod_group") as String
 version = modVersion
 
 base {
-    archivesName.set(modId)
+    archivesName.set("settlement-roads")
 }
 
 fun deobf(notation: String): Any =
@@ -171,15 +171,15 @@ tasks.jacocoTestReport {
     classDirectories.setFrom(
         fileTree(layout.buildDirectory.dir("classes/kotlin/main").get()) {
             exclude(
-                "**/com/gerald/settlementroads/command/**",
-                "**/com/gerald/settlementroads/config/**",
-                "**/com/gerald/settlementroads/registry/**",
-                "**/com/gerald/settlementroads/tag/**",
-                "**/com/gerald/settlementroads/runtime/**",
-                "**/com/gerald/settlementroads/worldgen/**",
-                "**/com/gerald/settlementroads/debug/**",
-                "**/com/gerald/settlementroads/gametest/**",
-                "**/com/gerald/settlementroads/SettlementRoadsMod*"
+                "**/com/gerald/settlement_roads/command/**",
+                "**/com/gerald/settlement_roads/config/**",
+                "**/com/gerald/settlement_roads/registry/**",
+                "**/com/gerald/settlement_roads/tag/**",
+                "**/com/gerald/settlement_roads/runtime/**",
+                "**/com/gerald/settlement_roads/worldgen/**",
+                "**/com/gerald/settlement_roads/debug/**",
+                "**/com/gerald/settlement_roads/gametest/**",
+                "**/com/gerald/settlement_roads/SettlementRoadsMod*"
             )
         }
     )
@@ -195,13 +195,13 @@ tasks.jacocoTestCoverageVerification {
         rule {
             element = "BUNDLE"
             includes = listOf(
-                "com.gerald.settlementroads.planner.*",
-                "com.gerald.settlementroads.planner.model.*",
-                "com.gerald.settlementroads.planner.terrain.*",
-                "com.gerald.settlementroads.planner.palette.*",
-                "com.gerald.settlementroads.planner.placement.*",
-                "com.gerald.settlementroads.planner.bridge.*",
-                "com.gerald.settlementroads.data.*"
+                "com.bettercontent.settlementroads.planner.*",
+                "com.bettercontent.settlementroads.planner.model.*",
+                "com.bettercontent.settlementroads.planner.terrain.*",
+                "com.bettercontent.settlementroads.planner.palette.*",
+                "com.bettercontent.settlementroads.planner.placement.*",
+                "com.bettercontent.settlementroads.planner.bridge.*",
+                "com.bettercontent.settlementroads.data.*"
             )
             limit {
                 counter = "LINE"

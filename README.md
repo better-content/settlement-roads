@@ -20,7 +20,7 @@ The current design bias is:
 
 Current implementation slice:
 
-- mod metadata, code namespace, and resources now consistently use `settlementroads`
+- mod metadata, code namespace, and resources now consistently use `settlement_roads`
 - legacy `fissionreactor` sources, assets, tests, and dependency baggage have been removed
 - core planner/domain/storage scaffolding exists in `src/main/kotlin`
 - deterministic synthetic scenarios now drive both debug commands and GameTests
@@ -28,7 +28,7 @@ Current implementation slice:
 - debug placement renders road rings, 3-wide roads, stone-brick bridge decks, parapet walls, and support columns
 - deterministic JVM tests cover clustering, rings, route selection, palette choice, bridge support logic, chunk indexing, and save-data round trips
 - in-world GameTests cover grassy bridge placement, rocky palette selection, cave support descent, wide-river detours, and rerun idempotence
-- debug commands register `/settlementroads debug spawn_scenario`, `plan_here`, `place_here`, and `clear_here`
+- debug commands register `/settlement_roads debug spawn_scenario`, `plan_here`, `place_here`, and `clear_here`
 
 Immediate implementation entry points:
 
@@ -39,3 +39,12 @@ Immediate implementation entry points:
 ## Community and support
 
 For modpack and mod discussion, playtest feedback, and bug reports, join the [Better Content Discord](https://discord.gg/EkRnZbzqS9).
+
+## Canonical identity
+
+- Repository and release artifact: `settlement-roads`
+- Mod ID and resource namespace: `settlement_roads`
+- Java package: `com.bettercontent.settlementroads`
+- Validation: `./gradlew verifyFull`
+
+This normalization is a clean break. Worlds, configuration files, and integrations created for earlier identities are not migrated or aliased.

@@ -13,9 +13,9 @@ Primary testing rules:
 
 ## 2. Repository Preconditions
 
-- The repository now uses the target namespace `settlementroads`.
+- The repository now uses the target namespace `settlement_roads`.
 - Test names and scenario ids in this document are the contract surface for future planner expansion.
-- Command examples continue to use the target namespace `settlementroads` from the project spec.
+- Command examples continue to use the target namespace `settlement_roads` from the project spec.
 
 ## 3. Test Pyramid
 
@@ -309,10 +309,10 @@ Minimum source layout expected by this plan:
 
 The debug command path should be covered by integration tests or smoke tests for:
 
-- `/settlementroads debug spawn_scenario <id>`
-- `/settlementroads debug plan_here`
-- `/settlementroads debug place_here`
-- `/settlementroads debug clear_here`
+- `/settlement_roads debug spawn_scenario <id>`
+- `/settlement_roads debug plan_here`
+- `/settlement_roads debug place_here`
+- `/settlement_roads debug clear_here`
 
 Minimum expectations:
 

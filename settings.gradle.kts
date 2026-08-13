@@ -7,5 +7,5 @@ pluginManagement {
     }
 }
 
-rootProject.name = "worldpaths"
+rootProject.name = "settlement-roads"
 

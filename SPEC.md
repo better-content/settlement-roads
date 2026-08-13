@@ -9,7 +9,7 @@
 
 ## 2. Repository Adoption Notes
 
-- The repository now uses the target namespace `settlementroads` in Gradle metadata, source packages, resources, and command registration.
+- The repository now uses the target namespace `settlement_roads` in Gradle metadata, source packages, resources, and command registration.
 - The initial implementation slice covers planner-domain scaffolding, persistence scaffolding, debug command registration, starter tags, and deterministic JVM planner tests.
 - Bridge placement, terrain-aware routing, GameTest templates, and full scenario spawning still remain as later phases from this spec.
 
@@ -483,10 +483,10 @@ Use exact block snapshots only for small synthetic scenes.
 Add debug commands with deterministic scene control:
 
 ```text
-/settlementroads debug spawn_scenario <id>
-/settlementroads debug plan_here
-/settlementroads debug place_here
-/settlementroads debug clear_here
+/settlement_roads debug spawn_scenario <id>
+/settlement_roads debug plan_here
+/settlement_roads debug place_here
+/settlement_roads debug clear_here
 ```
 
 Purpose:
