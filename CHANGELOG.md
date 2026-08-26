@@ -11,6 +11,7 @@
 
 ### Changed
 
+- Restored complete three-wide dirt-path and gravel roads with deterministic sparse coarse-dirt edge detail; stone palettes remain bridge-only.
 - Renamed the codebase from the template namespace to the `settlement_roads` mod namespace
 - Added repo execution notes for tests, GameTests, and datagen entry points
 - Removed the legacy `fissionreactor` code and assets instead of excluding them from the build

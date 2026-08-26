@@ -59,13 +59,13 @@ object SettlementRoadsGameTests {
 
     @JvmStatic
     @GameTest(template = "blank")
-    fun rockyCrossingUsesWeatheredCobbleAndBridge(helper: GameTestHelper) {
+    fun rockyCrossingUsesGravelAndBridge(helper: GameTestHelper) {
         val (_, _, segments, _) = spawnAndPlace(helper, DebugScenarioId.ROCKY_CROSSING)
 
         val firstGround = segments.filterIsInstance<PathSegment.Ground>().first()
         helper.assertTrue(
-            firstGround.blocks.any { pos -> isWeatheredRoadBlock(helper.level.getBlockState(pos).block) },
-            "Rocky crossing should use weathered cobble for ground segments"
+            firstGround.blocks.any { pos -> helper.level.getBlockState(pos).block == Blocks.GRAVEL },
+            "Rocky crossing should use gravel for ground segments"
         )
         helper.assertTrue(segments.any { it is PathSegment.Bridge }, "Rocky crossing should still use a bridge")
         helper.succeed()
@@ -138,10 +138,6 @@ object SettlementRoadsGameTests {
         )
         return SpawnedScenario(definition, network, segments, placed)
     }
-
-    private fun isWeatheredRoadBlock(block: net.minecraft.world.level.block.Block): Boolean =
-        block == Blocks.COBBLESTONE ||
-            block == Blocks.MOSSY_COBBLESTONE
 
     private data class SpawnedScenario(
         val definition: com.bettercontent.settlementroads.command.DebugScenarioDefinition,

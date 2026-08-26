@@ -25,7 +25,7 @@ Current implementation slice:
 - core planner/domain/storage scaffolding exists in `src/main/kotlin`
 - deterministic synthetic scenarios now drive both debug commands and GameTests
 - route planning can choose a bridge over a short shallow-water span or detour around a too-wide crossing
-- debug placement renders road rings, 3-wide roads, stone-brick bridge decks, parapet walls, and support columns
+- placement renders three-wide dirt paths in grassy biomes, gravel roads in non-grassy biomes, sparse coarse-dirt edges, and stone-brick bridges with parapets and supports
 - deterministic JVM tests cover clustering, rings, route selection, palette choice, bridge support logic, chunk indexing, and save-data round trips
 - in-world GameTests cover grassy bridge placement, rocky palette selection, cave support descent, wide-river detours, and rerun idempotence
 - debug commands register `/settlement_roads debug spawn_scenario`, `plan_here`, `place_here`, and `clear_here`

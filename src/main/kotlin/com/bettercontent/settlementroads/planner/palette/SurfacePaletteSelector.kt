@@ -3,8 +3,8 @@ package com.bettercontent.settlementroads.planner.palette
 import net.minecraft.core.BlockPos
 
 enum class SurfacePalette(val mainBlockId: String) {
-    GRASSY("minecraft:cobblestone"),
-    NON_GRASSY("minecraft:cobblestone")
+    GRASSY("minecraft:dirt_path"),
+    NON_GRASSY("minecraft:gravel")
 }
 
 object SurfacePaletteSelector {

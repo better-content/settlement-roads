@@ -9,6 +9,7 @@ data class PlannerConfig(
     val minTicksBetweenRebuilds: Long = 1L,
     val maxSegmentsPlacedPerTick: Int = 256,
     val roadWidth: Int = 3,
+    val coarseDirtEdgeRate: Double = 0.20,
     val bridgeMaxSpan: Int = 12,
     val bridgeMaxBankGrade: Int = 2,
     val bridgeCostPerBlock: Int = 4,

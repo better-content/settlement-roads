@@ -3,10 +3,10 @@ package com.bettercontent.settlementroads.runtime
 import com.bettercontent.settlementroads.data.PlannedRoadNetwork
 import com.bettercontent.settlementroads.planner.PlannerConfig
 import com.bettercontent.settlementroads.planner.model.PathSegment
+import com.bettercontent.settlementroads.planner.palette.SurfacePalette
+import com.bettercontent.settlementroads.planner.palette.SurfacePaletteSelector
 import com.bettercontent.settlementroads.planner.placement.SegmentIdCodec
-import com.bettercontent.settlementroads.planner.placement.WeatheredRoadPalette
-import com.bettercontent.settlementroads.planner.placement.WeatheredRoadPiece
-import com.bettercontent.settlementroads.planner.placement.WeatheredWallPiece
+import com.bettercontent.settlementroads.tag.SettlementRoadsTags
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.FluidTags
@@ -52,7 +52,7 @@ object WorldNetworkPlacer {
                 continue
             }
 
-            val roadPlacement = placeRoad(level, ringBlocks, segmentId)
+            val roadPlacement = placeRoad(level, ringBlocks, segmentId, config)
             placedBlocks += roadPlacement.placedBlocks
             placedWallBlocks += roadPlacement.placedWallBlocks
             appliedSegments += segmentId
@@ -87,7 +87,7 @@ object WorldNetworkPlacer {
                     placedBlocks += when (segment) {
                         is PathSegment.Bridge -> placeBridge(level, segment)
                         is PathSegment.Ground -> {
-                            val roadPlacement = placeRoad(level, segment.blocks, segmentId)
+                            val roadPlacement = placeRoad(level, segment.blocks, segmentId, config)
                             placedWallBlocks += roadPlacement.placedWallBlocks
                             roadPlacement.placedBlocks
                         }
@@ -109,7 +109,12 @@ object WorldNetworkPlacer {
 
     private data class RoadPlacement(val placedBlocks: Int, val placedWallBlocks: Int)
 
-    private fun placeRoad(level: ServerLevel, centerline: List<BlockPos>, seedKey: String): RoadPlacement {
+    private fun placeRoad(
+        level: ServerLevel,
+        centerline: List<BlockPos>,
+        seedKey: String,
+        config: PlannerConfig
+    ): RoadPlacement {
         if (centerline.isEmpty()) {
             return RoadPlacement(0, 0)
         }
@@ -117,22 +122,28 @@ object WorldNetworkPlacer {
         val snappedCenterline = centerline.map { snapToSurface(level, it) }
         val seed = seedKey.hashCode().toLong()
         var placedBlocks = 0
-        var placedWallBlocks = 0
-
-        for ((index, pos) in snappedCenterline.withIndex()) {
-            val lateralOffsets = lateralOffsets(snappedCenterline, index)
-            placedBlocks += placeRoadBlockIfRoadable(level, pos, seed, index, centerline = true)
-            for ((offsetX, offsetZ) in lateralOffsets) {
-                val edge = snapToSurface(level, pos.offset(offsetX, 0, offsetZ))
-                placedBlocks += placeRoadBlockIfRoadable(level, edge, seed, index, centerline = false)
-            }
-            for ((offsetX, offsetZ) in wallOffsets(lateralOffsets)) {
-                val wallBase = snapToSurface(level, pos.offset(offsetX, 0, offsetZ))
-                placedWallBlocks += placeWallIfRoadable(level, wallBase, seed, index)
+        val roadPositions = buildList {
+            for ((index, pos) in snappedCenterline.withIndex()) {
+                add(pos to true)
+                for ((offsetX, offsetZ) in lateralOffsets(snappedCenterline, index)) {
+                    add(snapToSurface(level, pos.offset(offsetX, 0, offsetZ)) to false)
+                }
             }
         }
+        val centerlinePositions = roadPositions.filter { it.second }.mapTo(linkedSetOf()) { it.first }
+        val footprint = roadPositions.mapTo(linkedSetOf()) { it.first }
+        val detailPositions = SurfacePaletteSelector.chooseSparseWeatheringDetail(
+            pathFootprint = footprint,
+            centerline = centerlinePositions,
+            seed = seed,
+            detailRate = config.coarseDirtEdgeRate
+        )
 
-        return RoadPlacement(placedBlocks, placedWallBlocks)
+        for ((pos, _) in roadPositions.distinctBy { it.first }) {
+            placedBlocks += placeRoadBlockIfRoadable(level, pos, pos in detailPositions)
+        }
+
+        return RoadPlacement(placedBlocks, 0)
     }
 
     private fun snapToSurface(level: ServerLevel, pos: BlockPos): BlockPos {
@@ -172,43 +183,25 @@ object WorldNetworkPlacer {
     private fun placeRoadBlockIfRoadable(
         level: ServerLevel,
         pos: BlockPos,
-        seed: Long,
-        index: Int,
-        centerline: Boolean
+        coarseDetail: Boolean
     ): Int {
         if (!isRoadableGround(level, pos)) {
             return 0
         }
 
-        val piece = WeatheredRoadPalette.choose(pos, seed, index, centerline) ?: return 0
-        return placeIfChanged(level, pos, roadState(piece))
+        return placeIfChanged(level, pos, roadBlock(level, pos, coarseDetail))
     }
 
-    private fun roadState(piece: WeatheredRoadPiece): BlockState =
-        when (piece) {
-            WeatheredRoadPiece.COBBLESTONE -> Blocks.COBBLESTONE.defaultBlockState()
-            WeatheredRoadPiece.MOSSY_COBBLESTONE -> Blocks.MOSSY_COBBLESTONE.defaultBlockState()
+    private fun roadBlock(level: ServerLevel, pos: BlockPos, coarseDetail: Boolean): Block {
+        if (coarseDetail) return Blocks.COARSE_DIRT
+        val biome = level.getBiome(pos)
+        val isGrassy = biome.`is`(SettlementRoadsTags.Biomes.GRASSY_BIOMES) ||
+            !biome.`is`(SettlementRoadsTags.Biomes.NON_GRASSY_BIOMES)
+        return when (SurfacePaletteSelector.choose(isGrassy)) {
+            SurfacePalette.GRASSY -> Blocks.DIRT_PATH
+            SurfacePalette.NON_GRASSY -> Blocks.GRAVEL
         }
-
-    private fun placeWallIfRoadable(level: ServerLevel, base: BlockPos, seed: Long, index: Int): Int {
-        if (!isRoadableGround(level, base)) {
-            return 0
-        }
-
-        val wallPos = base.above()
-        if (!level.getBlockState(wallPos).isAir) {
-            return 0
-        }
-
-        val piece = WeatheredRoadPalette.chooseWall(wallPos, seed, index) ?: return 0
-        return placeIfChanged(level, wallPos, wallState(piece))
     }
-
-    private fun wallState(piece: WeatheredWallPiece): BlockState =
-        when (piece) {
-            WeatheredWallPiece.COBBLESTONE_WALL -> Blocks.COBBLESTONE_WALL.defaultBlockState()
-            WeatheredWallPiece.MOSSY_COBBLESTONE_WALL -> Blocks.MOSSY_COBBLESTONE_WALL.defaultBlockState()
-        }
 
     private fun isRoadableGround(level: ServerLevel, pos: BlockPos): Boolean {
         val state = level.getBlockState(pos)

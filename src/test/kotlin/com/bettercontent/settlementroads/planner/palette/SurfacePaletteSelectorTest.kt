@@ -7,13 +7,13 @@ import kotlin.test.assertTrue
 
 class SurfacePaletteSelectorTest {
     @Test
-    fun grassy_surface_chooses_cobblestone() {
-        assertEquals("minecraft:cobblestone", SurfacePaletteSelector.choose(true).mainBlockId)
+    fun grassy_surface_chooses_dirt_path() {
+        assertEquals("minecraft:dirt_path", SurfacePaletteSelector.choose(true).mainBlockId)
     }
 
     @Test
-    fun non_grassy_surface_chooses_cobblestone() {
-        assertEquals("minecraft:cobblestone", SurfacePaletteSelector.choose(false).mainBlockId)
+    fun non_grassy_surface_chooses_gravel() {
+        assertEquals("minecraft:gravel", SurfacePaletteSelector.choose(false).mainBlockId)
     }
 
     @Test

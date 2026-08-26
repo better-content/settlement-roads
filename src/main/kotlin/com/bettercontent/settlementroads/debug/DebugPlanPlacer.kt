@@ -1,9 +1,8 @@
 package com.bettercontent.settlementroads.debug
 
 import com.bettercontent.settlementroads.planner.model.PathSegment
-import com.bettercontent.settlementroads.planner.placement.WeatheredRoadPalette
-import com.bettercontent.settlementroads.planner.placement.WeatheredRoadPiece
-import com.bettercontent.settlementroads.planner.placement.WeatheredWallPiece
+import com.bettercontent.settlementroads.planner.palette.SurfacePalette
+import com.bettercontent.settlementroads.planner.palette.SurfacePaletteSelector
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.block.Block
@@ -13,48 +12,72 @@ import net.minecraft.world.level.block.state.BlockState
 object DebugPlanPlacer {
     fun place(level: ServerLevel, rings: List<List<BlockPos>>, segments: List<PathSegment>, isGrassy: Boolean): Int {
         val seed = if (isGrassy) 1L else 2L
-        var placedBlocks = 0
-
-        for (ring in rings) {
-            placedBlocks += placeRoad(level, ring.dropLast(1), "debug-ring".hashCode().toLong() + seed)
-        }
-
-        for (segment in segments) {
-            when (segment) {
-                is PathSegment.Bridge -> {
-                    placedBlocks += placeBridge(level, segment.blocks)
-                    placedBlocks += segment.supports.sumOf { support ->
-                        placeVerticalColumn(
-                            level = level,
-                            x = support.x,
-                            fromY = support.fromY,
-                            toY = support.toY,
-                            z = support.z,
-                            block = Blocks.COBBLESTONE
-                        )
+        val bridgeSegments = segments.filterIsInstance<PathSegment.Bridge>()
+        val bridgeDeckFootprint = buildSet {
+            for (segment in bridgeSegments) {
+                for ((index, pos) in segment.blocks.withIndex()) {
+                    add(pos)
+                    for ((offsetX, offsetZ) in lateralOffsets(segment.blocks, index)) {
+                        add(pos.offset(offsetX, 0, offsetZ))
                     }
                 }
+            }
+        }
+        val groundCenterlines = buildList {
+            rings.mapTo(this) { it.dropLast(1) }
+            segments.filterIsInstance<PathSegment.Ground>().mapTo(this) { it.blocks }
+        }
+        var placedBlocks = placeRoad(level, groundCenterlines, seed, isGrassy, bridgeDeckFootprint)
 
-                is PathSegment.Ground -> {
-                    placedBlocks += placeRoad(level, segment.blocks, "debug-ground".hashCode().toLong() + seed)
-                }
+        for (segment in bridgeSegments) {
+            placedBlocks += placeBridge(level, segment.blocks)
+            placedBlocks += segment.supports.sumOf { support ->
+                placeVerticalColumn(
+                    level = level,
+                    x = support.x,
+                    fromY = support.fromY,
+                    toY = support.toY,
+                    z = support.z,
+                    block = Blocks.COBBLESTONE
+                )
             }
         }
 
         return placedBlocks
     }
 
-    private fun placeRoad(level: ServerLevel, centerline: List<BlockPos>, seed: Long): Int {
+    private fun placeRoad(
+        level: ServerLevel,
+        centerlines: List<List<BlockPos>>,
+        seed: Long,
+        isGrassy: Boolean,
+        excludedPositions: Set<BlockPos>
+    ): Int {
         var placed = 0
-        for ((index, pos) in centerline.withIndex()) {
-            val lateralOffsets = lateralOffsets(centerline, index)
-            placed += placeRoadPiece(level, pos, seed, index, centerline = true)
-            for (offset in lateralOffsets) {
-                placed += placeRoadPiece(level, pos.offset(offset.first, 0, offset.second), seed, index, centerline = false)
+        val roadPositions = buildList {
+            for (centerline in centerlines) {
+                for ((index, pos) in centerline.withIndex()) {
+                    add(pos)
+                    for ((offsetX, offsetZ) in lateralOffsets(centerline, index)) {
+                        add(pos.offset(offsetX, 0, offsetZ))
+                    }
+                }
             }
-            for (offset in wallOffsets(lateralOffsets)) {
-                placed += placeWallPiece(level, pos.offset(offset.first, 1, offset.second), seed, index)
-            }
+        }
+        val centerlinePositions = centerlines.flatten().toSet()
+        val pathFootprint = roadPositions.filterTo(linkedSetOf()) { it !in excludedPositions }
+        val detailPositions = SurfacePaletteSelector.chooseSparseWeatheringDetail(
+            pathFootprint = pathFootprint,
+            centerline = centerlinePositions,
+            seed = seed,
+            detailRate = 0.20
+        )
+        val mainBlock = when (SurfacePaletteSelector.choose(isGrassy)) {
+            SurfacePalette.GRASSY -> Blocks.DIRT_PATH
+            SurfacePalette.NON_GRASSY -> Blocks.GRAVEL
+        }
+        for (pos in pathFootprint) {
+            placed += placeIfChanged(level, pos, if (pos in detailPositions) Blocks.COARSE_DIRT else mainBlock)
         }
         return placed
     }
@@ -92,38 +115,6 @@ object DebugPlanPlacer {
             listOf(-1 to 0, 1 to 0)
         }
     }
-
-    private fun placeRoadPiece(
-        level: ServerLevel,
-        pos: BlockPos,
-        seed: Long,
-        index: Int,
-        centerline: Boolean
-    ): Int {
-        val piece = WeatheredRoadPalette.choose(pos, seed, index, centerline) ?: return 0
-        return placeIfChanged(level, pos, roadState(piece))
-    }
-
-    private fun roadState(piece: WeatheredRoadPiece): BlockState =
-        when (piece) {
-            WeatheredRoadPiece.COBBLESTONE -> Blocks.COBBLESTONE.defaultBlockState()
-            WeatheredRoadPiece.MOSSY_COBBLESTONE -> Blocks.MOSSY_COBBLESTONE.defaultBlockState()
-        }
-
-    private fun placeWallPiece(level: ServerLevel, pos: BlockPos, seed: Long, index: Int): Int {
-        if (!level.getBlockState(pos).isAir) {
-            return 0
-        }
-
-        val piece = WeatheredRoadPalette.chooseWall(pos, seed, index) ?: return 0
-        return placeIfChanged(level, pos, wallState(piece))
-    }
-
-    private fun wallState(piece: WeatheredWallPiece): BlockState =
-        when (piece) {
-            WeatheredWallPiece.COBBLESTONE_WALL -> Blocks.COBBLESTONE_WALL.defaultBlockState()
-            WeatheredWallPiece.MOSSY_COBBLESTONE_WALL -> Blocks.MOSSY_COBBLESTONE_WALL.defaultBlockState()
-        }
 
     private fun placeVerticalColumn(
         level: ServerLevel,
