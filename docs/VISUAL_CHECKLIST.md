@@ -2,6 +2,10 @@
 
 Use this checklist after invariant assertions pass. Visual confirmation is secondary and exists to catch obvious design regressions that remain logically valid.
 
+Supported review uses `allow_water_bridges = false`. The bridge and support sections are retained
+only for explicitly commissioned work on dormant experimental scaffolding; they are not current
+acceptance gates and must not be used to claim working bridge support.
+
 ## Global Review Conditions
 
 - fixed time of day
@@ -23,7 +27,7 @@ Use this checklist after invariant assertions pass. Visual confirmation is secon
 - `minecraft:coarse_dirt` remains sparse and edge-biased
 - coarse dirt does not create a checkerboard pattern
 
-## Bridges
+## Dormant Bridge Scaffolding
 
 - bridge placement feels cheaper than the visible reroute alternative
 - deck width matches route classification
@@ -34,7 +38,7 @@ Use this checklist after invariant assertions pass. Visual confirmation is secon
 - mid-piers appear where longer spans would need them
 - buried support contact looks grounded rather than decorative
 
-## Supports
+## Dormant Bridge Supports
 
 - supports continue past water and visible cave air where required
 - supports do not terminate on leaves, plants, logs, or fluids
@@ -51,7 +55,7 @@ Use this checklist after invariant assertions pass. Visual confirmation is secon
 ## Rerun Stability
 
 - second run does not add duplicate path width
-- second run does not double-place bridge walls or supports
+- during explicit dormant-bridge review, a second run does not double-place bridge walls or supports
 - chunk-edge placements look continuous after rerun
 
 ## Review Record

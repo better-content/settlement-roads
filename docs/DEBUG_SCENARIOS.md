@@ -20,6 +20,10 @@ Expected debug command surface:
 
 ## Scenario List
 
+Supported scenarios use `allow_water_bridges = false`: water forces a dry detour when one exists and
+otherwise produces no connection. The bridge-producing scenarios below are retained only as dormant
+experimental scaffolding; their isolated automation explicitly enables the unsupported flag.
+
 ### `flat_grassy_twins`
 
 - Purpose: baseline path generation on simple grassy terrain
@@ -30,44 +34,44 @@ Expected debug command surface:
 - Expected output: dirt path connection, sparse coarse dirt detail, no bridge
 - Primary assertions: palette choice, no bridge segments, stable anchor selection
 
-### `grassy_river_crossing`
+### `grassy_river_crossing` (dormant bridge scaffolding)
 
-- Purpose: validate narrow-river bridge placement in grassy terrain
-- Current automation: covered by `grassyRiverCrossingProducesBridge`
+- Purpose: isolate narrow-river bridge code in grassy terrain; not supported pack behavior
+- Current automation: `grassyRiverCrossingProducesBridge` explicitly enables unsupported bridges
 - Structures: 2
 - Terrain: grassy with narrow river
 - Water crossing: yes
-- Expected output: dirt-path approaches, stone-brick bridge, valid supports
+- Expected output with the unsupported flag enabled: dirt-path approaches, stone-brick bridge, valid supports
 - Primary assertions: bridge allowed, clearance valid, supports reach solid terrain
 
-### `rocky_crossing`
+### `rocky_crossing` (dormant bridge scaffolding)
 
-- Purpose: validate non-grassy palette selection with a bridge
-- Current automation: covered by `rockyCrossingUsesGravelAndBridge`
+- Purpose: isolate non-grassy bridge palette code; not supported pack behavior
+- Current automation: `rockyCrossingUsesGravelAndBridge` explicitly enables unsupported bridges
 - Structures: 2
 - Terrain: rocky or otherwise non-grassy
 - Water crossing: yes
-- Expected output: gravel path, stone-brick bridge
+- Expected output with the unsupported flag enabled: gravel path, stone-brick bridge
 - Primary assertions: gravel palette, valid supports, no grassy palette leak
 
-### `cave_under_riverbed`
+### `cave_under_riverbed` (dormant bridge scaffolding)
 
-- Purpose: validate support descent through water and cave air
-- Current automation: covered by `caveUnderRiverContinuesSupportsToSolid`
+- Purpose: isolate support descent through water and cave air; not supported pack behavior
+- Current automation: `caveUnderRiverContinuesSupportsToSolid` explicitly enables unsupported bridges
 - Structures: 2
 - Terrain: river with void below bed and true solid deeper down
 - Water crossing: yes
-- Expected output: bridge supports continue through cavity to valid support block
+- Expected output with the unsupported flag enabled: bridge supports continue through cavity to valid support block
 - Primary assertions: no false support termination, no floating bridge sections
 
 ### `too_wide_river`
 
-- Purpose: validate bridge rejection logic
+- Purpose: validate supported water avoidance and retained bridge rejection logic
 - Current automation: covered by `tooWideRiverDetoursWithoutBridge`
 - Structures: 2
 - Terrain: crossing exceeds configured span
 - Water crossing: yes
-- Expected output: no bridge; reroute or no connection based on config
+- Expected output: no bridge; a dry detour when one exists, otherwise no connection
 - Primary assertions: bridge rejection reason stable, planner does not force invalid bridge
 
 ### `three_structure_cluster`

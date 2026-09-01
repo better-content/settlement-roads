@@ -1,6 +1,6 @@
 # Settlement Roads
 
-Deterministic, scenario-driven settlement road and bridge planning for Forge 1.20.1.
+Deterministic, scenario-driven settlement road planning for Forge 1.20.1.
 
 This repository contains the mod implementation and its execution docs:
 
@@ -24,10 +24,11 @@ Current implementation slice:
 - legacy `fissionreactor` sources, assets, tests, and dependency baggage have been removed
 - core planner/domain/storage scaffolding exists in `src/main/kotlin`
 - deterministic synthetic scenarios now drive both debug commands and GameTests
-- route planning can choose a bridge over a short shallow-water span or detour around a too-wide crossing
-- placement renders three-wide dirt paths in grassy biomes, gravel roads in non-grassy biomes, sparse coarse-dirt edges, and stone-brick bridges with parapets and supports
-- deterministic JVM tests cover clustering, rings, route selection, palette choice, bridge support logic, chunk indexing, and save-data round trips
-- in-world GameTests cover grassy bridge placement, rocky palette selection, cave support descent, wide-river detours, and rerun idempotence
+- supported route planning avoids water with a dry detour when one exists and otherwise omits the connection
+- placement renders three-wide dirt paths in grassy biomes, gravel roads in non-grassy biomes, and sparse coarse-dirt edges
+- bridge planning and placement code remains dormant experimental scaffolding; `allow_water_bridges` defaults to false and must remain false for supported use
+- deterministic JVM tests cover clustering, rings, dry-route selection, palette choice, chunk indexing, and save-data round trips; isolated bridge tests deliberately enable the unsupported flag
+- in-world GameTests retain isolated bridge-placement scaffolding alongside supported dry routing and rerun-idempotence coverage; they do not establish working bridge support
 - debug commands register `/settlement_roads debug spawn_scenario`, `plan_here`, `place_here`, and `clear_here`
 
 Immediate implementation entry points:

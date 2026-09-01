@@ -1,8 +1,10 @@
-# WorldPaths Test Plan
+# Settlement Roads Test Plan
 
 ## 1. Purpose
 
-This plan defines the deterministic verification strategy for WorldPaths.
+This plan defines the deterministic verification strategy for Settlement Roads. Supported behavior
+keeps `allow_water_bridges` false: routes take a dry detour when possible and otherwise omit the
+connection. Bridge tests are retained only as isolated experimental scaffolding.
 
 Primary testing rules:
 
@@ -14,7 +16,7 @@ Primary testing rules:
 ## 2. Repository Preconditions
 
 - The repository now uses the target namespace `settlement_roads`.
-- Test names and scenario ids in this document are the contract surface for future planner expansion.
+- Test names and scenario ids document the supported dry-routing contract and separately labeled dormant scaffolding.
 - Command examples continue to use the target namespace `settlement_roads` from the project spec.
 
 ## 3. Test Pyramid
@@ -28,8 +30,7 @@ Use plain JVM tests for:
 - anchor choice
 - terrain classification
 - route cost evaluation
-- bridge span decisions
-- support descent and footing widening
+- isolated bridge span, support-descent, and footing behavior with the unsupported flag enabled
 - persistence round-trip behavior
 - idempotence and chunk stamp logic
 
@@ -40,7 +41,7 @@ Unit tests should dominate the suite because they are fast, deterministic, and i
 Use Forge GameTests for:
 
 - synthetic in-world terrain interaction
-- bridge support descent through water and caves
+- isolated dormant-bridge interaction through water and caves
 - chunk-boundary placement behavior
 - rerun stability after real placement
 - debug scene inspection
@@ -52,9 +53,10 @@ GameTests must load fixed templates and must not depend on ambient worldgen.
 Manual review exists to confirm:
 
 - road shape reads well at player scale
-- bridge massing looks intentional
-- supports look grounded
 - ring placement feels plausible around structures
+
+Bridge massing and support review is not part of current supported acceptance. Use it only when
+explicitly inspecting the dormant bridge scaffolding.
 
 Manual visual review is not the merge gate when invariant assertions already fail.
 
@@ -113,7 +115,7 @@ Assertions:
 - `grassy_surface_chooses_dirt_path`
 - `non_grassy_surface_chooses_gravel`
 - `coarse_dirt_noise_is_sparse`
-- `bridge_cost_lower_than_detour_when_span_short`
+- `bridge_cost_lower_than_detour_when_span_short` (dormant bridge scaffolding only)
 
 Assertions:
 
@@ -121,7 +123,10 @@ Assertions:
 - coarse dirt density remains below configured threshold
 - coarse dirt positions cluster near edges rather than checkerboarding the centerline
 
-### 5.4 Bridge Planner
+### 5.4 Dormant Bridge Planner
+
+These tests explicitly enable unsupported bridge routing and only preserve isolated regression
+coverage. Passing them does not make bridges a supported feature.
 
 - `bridge_rejected_when_span_too_wide`
 - `bridge_rejected_when_bank_grade_too_steep`
@@ -160,6 +165,9 @@ All GameTests must:
 - assert world-state invariants
 - preserve a human-inspectable final result
 
+Scenarios B through D explicitly enable dormant bridge scaffolding. They do not model the supported
+pack configuration and must not be cited as proof that water bridges work in ordinary play.
+
 ### 6.1 Scenario A: Flat Grassy Twin Structures
 
 Scene:
@@ -174,7 +182,7 @@ Expected:
 - sparse `minecraft:coarse_dirt` detail
 - no bridge segments
 
-### 6.2 Scenario B: Grassy River Crossing
+### 6.2 Scenario B: Grassy River Crossing (Dormant Bridge Scaffolding)
 
 Scene:
 
@@ -188,7 +196,7 @@ Expected:
 - valid abutments on both banks
 - all required supports reach valid solid support
 
-### 6.3 Scenario C: Rocky Non-Grassy Crossing
+### 6.3 Scenario C: Rocky Non-Grassy Crossing (Dormant Bridge Scaffolding)
 
 Scene:
 
@@ -201,7 +209,7 @@ Expected:
 - stone-brick bridge inserted
 - coarse dirt remains sparse and decorative only
 
-### 6.4 Scenario D: Cave Under Riverbed
+### 6.4 Scenario D: Cave Under Riverbed (Dormant Bridge Scaffolding)
 
 Scene:
 
@@ -263,7 +271,8 @@ Expected:
 
 ## 7. Assertion Strategy
 
-Prefer these invariant assertions:
+Prefer these invariant assertions. Bridge-specific assertions apply only to the explicitly enabled
+dormant scenarios:
 
 - ring is closed
 - anchor lies on ring edge
@@ -335,7 +344,7 @@ Manual profiling pass:
 
 - run a populated synthetic scene
 - record profile output
-- confirm planner hotspots align with route and bridge work rather than repeated index scans
+- confirm planner hotspots align with route work rather than repeated index scans; inspect bridge work only during explicit dormant-scaffolding development
 
 ## 12. Exit Criteria
 
@@ -353,7 +362,7 @@ Project-wide acceptance requires:
 - all GameTests pass
 - persistence round-trip passes
 - rerun stability passes
-- support-descent cave case passes
+- retained dormant-bridge regression coverage, including the support-descent cave case, passes without being treated as supported-feature evidence
 - chunk-boundary behavior is stable
 - profiling shows no runaway behavior
 

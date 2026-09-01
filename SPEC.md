@@ -1,8 +1,8 @@
-# Settlement Paths and Bridges Spec
+# Settlement Roads Spec
 
 ## 1. Project
 
-- Project: Settlement Paths and Bridges
+- Project: Settlement Roads
 - Target: Forge 1.20.1
 - Language: Kotlin preferred
 - Delivery mode: deterministic, test-first, scenario-driven
@@ -10,8 +10,8 @@
 ## 2. Repository Adoption Notes
 
 - The repository now uses the target namespace `settlement_roads` in Gradle metadata, source packages, resources, and command registration.
-- The initial implementation slice covers planner-domain scaffolding, persistence scaffolding, debug command registration, starter tags, and deterministic JVM planner tests.
-- Bridge placement, terrain-aware routing, GameTest templates, and full scenario spawning still remain as later phases from this spec.
+- The implemented supported slice covers planner-domain and persistence code, dry terrain-aware routing, debug commands, deterministic JVM tests, and GameTests.
+- Bridge planning and placement code exists only as dormant experimental scaffolding. The supported configuration keeps `allow_water_bridges` false; bridge-specific tests enable it only to isolate that code.
 
 ## 3. Goal
 
@@ -20,18 +20,18 @@ Build a mod that:
 - detects clusters of nearby supported structures
 - generates an encircling path around each structure
 - connects structures in the same cluster with terrain-aware paths
-- inserts chunky stone-brick bridges over narrow rivers where crossing is cheaper than rerouting
-- places vertical supports down to solid terrain so the result is compatible with realistic block-physics expectations
+- routes around water on dry terrain when a bounded detour exists
+- omits a connection when no supported dry route exists
 - uses `minecraft:dirt_path` in grassy biomes
 - uses `minecraft:gravel` in non-grassy biomes
 - uses `minecraft:coarse_dirt` as sparse edge-biased detail
-- uses stone-brick bridge palettes in all biomes
 
 ## 4. Non-Goals For V1
 
 The v1 implementation does not attempt:
 
 - automatic support for all modded structures
+- supported bridge or other over-water placement
 - long-span mega-bridges
 - tunnels
 - diagonal or curved bridges
@@ -41,15 +41,12 @@ The v1 implementation does not attempt:
 
 ## 5. Source Of Truth
 
-Authoritative order:
-
-1. This spec
-2. Test suite expectations
-3. Generated world-state invariants
-4. Planner-module code comments
-5. Visual screenshots as secondary confirmation only
-
-If screenshots and invariant assertions disagree, assertions win until the scene is inspected manually.
+The supported product decision and checked-in default configuration define the intended behavior;
+code and tests must then be interpreted within that boundary. No artifact has blanket precedence
+over the others. When the spec, tests, config, code, or observed world state disagree, obtain an
+owner decision for that behavior and reconcile the affected artifacts. For checks of the same
+intended behavior, invariant assertions remain stronger evidence than screenshots until the scene
+is inspected manually.
 
 ## 6. Design Principles
 
@@ -68,7 +65,7 @@ If screenshots and invariant assertions disagree, assertions win until the scene
 - `cluster-planner`
 - `ring-planner`
 - `route-planner`
-- `bridge-planner`
+- `bridge-planner` (dormant experimental scaffolding)
 - `segment-placer`
 - `world-state-storage`
 - `debug-tools`
@@ -81,7 +78,7 @@ Store global road-network state in Overworld `SavedData`:
 - indexed roadable structures
 - cluster assignments
 - planned road segments
-- planned bridge segments
+- planned bridge segments retained for dormant scaffolding
 - chunk placement stamps
 - planner version
 
@@ -94,10 +91,10 @@ Use datapack tags and JSON config for:
 - non-grassy biomes
 - solid support blocks
 - soft support blocks
-- bridge-forbidden fluids and terrains
+- water and other forbidden routing terrain
 - per-structure padding overrides
 - per-structure road width overrides
-- routing and bridge thresholds
+- routing thresholds and dormant bridge-test thresholds
 
 ## 8. Domain Model
 
@@ -232,7 +229,15 @@ Rules:
 - detail placement must be edge-biased
 - no checkerboard patterns
 
-### 9.6 Bridge Generation
+### 9.6 Dormant Bridge Scaffolding
+
+Water bridges are not supported. `allow_water_bridges` defaults to false and must remain false for
+supported deployments; the planner takes a dry detour when possible and otherwise emits no
+connection. The bridge planner, placer, data model, and isolated tests are retained only as
+experimental scaffolding. Enabling the flag or passing bridge-specific isolated tests does not
+establish working mod or pack behavior.
+
+If bridge development is explicitly resumed, the retained scaffolding models the following rules:
 
 Bridges are allowed only when:
 
@@ -331,10 +336,9 @@ Synthetic structures are acceptable in test mode:
 
 ### Phase 4
 
-- bridge planner
-- support descent
-- footing widening
-- bridge tests
+- dormant bridge planner
+- dormant support descent and footing widening
+- isolated bridge tests that explicitly enable the unsupported flag
 
 ### Phase 5
 
@@ -401,6 +405,9 @@ Required test cases:
 - `segment_intersection_per_chunk_stable`
 - `reloading_saved_plan_round_trips`
 
+The bridge- and support-named cases above are isolated regression coverage for dormant scaffolding.
+They explicitly opt into unsupported behavior and are not acceptance evidence for a pack feature.
+
 ### 14.2 GameTests
 
 GameTests shall:
@@ -422,9 +429,14 @@ Required scenarios:
 - Scenario G: rerun stability
 - Scenario H: chunk-boundary split
 
+Bridge-producing scenarios B through D are isolated scaffolding runs with bridges explicitly
+enabled. Supported behavior is exercised with the default disabled value: use a dry detour when
+available and otherwise omit the connection.
+
 ### 14.3 Assertion Style
 
-Prefer invariant assertions over snapshots:
+Prefer invariant assertions over snapshots. Bridge-specific assertions below apply only to the
+dormant isolated scenarios, not to supported deployments:
 
 - ring is closed
 - anchor lies on ring edge
@@ -564,7 +576,8 @@ A build is acceptable only if:
 - all unit tests pass
 - all GameTests pass
 - rerun and idempotence tests pass
-- the cave support-descent test passes
+- retained dormant-bridge regression tests, including cave support descent, pass without being
+  treated as supported-feature evidence
 - the visual checklist is reviewed for required scenarios
 - no unexpected chunk duplication occurs
 - profiling shows no runaway planner path during normal play

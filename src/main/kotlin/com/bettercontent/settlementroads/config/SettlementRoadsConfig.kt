@@ -85,7 +85,7 @@ object SettlementRoadsConfig {
         .defineInRange("max_dry_path_distance_from_line", 45, 1, 2_048)
 
     private val allowWaterBridges = builder
-        .comment("Allow temporary bridge routing over short spans of water.")
+        .comment("Experimental bridge routing is unsupported; leave false for dry detours or omitted connections.")
         .define("allow_water_bridges", false)
 
     val printWallInformation = builder
