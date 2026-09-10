@@ -5,7 +5,6 @@ import com.bettercontent.settlementroads.data.PlannedRoadNetwork
 import com.bettercontent.settlementroads.data.RoadNetworkState
 import com.bettercontent.settlementroads.data.SettlementRoadsSavedData
 import com.bettercontent.settlementroads.planner.PlannerConfig
-import com.bettercontent.settlementroads.compat.ThreadsRoadTracker
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
@@ -107,7 +106,7 @@ object SettlementRoadsRuntime {
             placeAvailable(level)
             lastPlacementGameTime[level] = level.gameTime
         }
-        if (hasPlayers) ThreadsRoadTracker.tick(level, SettlementRoadsSavedData.get(level).state.worldNetwork)
+        if (hasPlayers) RoadJourneyTracker.tick(level, SettlementRoadsSavedData.get(level).state.worldNetwork)
     }
 
     fun rebuildFromLoadedChunks(level: ServerLevel): RuntimeStatus {
