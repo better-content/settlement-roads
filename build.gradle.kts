@@ -8,7 +8,7 @@ plugins {
     `maven-publish`
     jacoco
     id("org.jetbrains.kotlin.jvm") version "1.9.25"
-    id("net.minecraftforge.gradle") version "[6.0,6.2)"
+    id("net.minecraftforge.gradle") version "6.0.54"
 }
 
 val minecraftVersion = property("minecraft_version") as String
