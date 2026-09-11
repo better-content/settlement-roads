@@ -49,3 +49,10 @@ For modpack and mod discussion, playtest feedback, and bug reports, join the [Be
 - Validation: `./gradlew verifyFull`
 
 This normalization is a clean break. Worlds, configuration files, and integrations created for earlier identities are not migrated or aliased.
+
+### Coverage gate regression
+
+`./gradle/verify-coverage-gate.sh` checks the production coverage gate, then confirms
+that an empty report scope and an unmet 100% coverage requirement fail. It restores
+the normal report afterward and retains diagnostic logs under
+`build/coverage-gate-regression/`. The production thresholds are unchanged.

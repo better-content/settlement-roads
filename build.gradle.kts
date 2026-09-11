@@ -1,3 +1,5 @@
+import javax.xml.parsers.DocumentBuilderFactory
+
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -166,43 +168,74 @@ jacoco {
     toolVersion = "0.8.12"
 }
 
+val coveredPlannerFiles = sourceSets.main.get().output.classesDirs.asFileTree.matching {
+    include(
+        "com/bettercontent/settlementroads/planner/**/*.class",
+        "com/bettercontent/settlementroads/data/**/*.class"
+    )
+}
+
 tasks.jacocoTestReport {
     dependsOn(tasks.test)
-    classDirectories.setFrom(
-        fileTree(layout.buildDirectory.dir("classes/kotlin/main").get()) {
-            exclude(
-                "**/com/gerald/settlement_roads/command/**",
-                "**/com/gerald/settlement_roads/config/**",
-                "**/com/gerald/settlement_roads/registry/**",
-                "**/com/gerald/settlement_roads/tag/**",
-                "**/com/gerald/settlement_roads/runtime/**",
-                "**/com/gerald/settlement_roads/worldgen/**",
-                "**/com/gerald/settlement_roads/debug/**",
-                "**/com/gerald/settlement_roads/gametest/**",
-                "**/com/gerald/settlement_roads/SettlementRoadsMod*"
-            )
-        }
-    )
+    classDirectories.setFrom(coveredPlannerFiles)
     reports {
         xml.required.set(true)
         html.required.set(true)
     }
 }
 
-tasks.jacocoTestCoverageVerification {
+val verifyCoverageInputs by tasks.registering {
+    group = "verification"
+    description = "Rejects missing planner/data classes or missing JaCoCo execution data."
     dependsOn(tasks.test)
+    doLast {
+        val selected = tasks.jacocoTestReport.get().classDirectories.asFileTree.files
+        for (scope in listOf("planner", "data")) {
+            check(selected.any { it.invariantSeparatorsPath.contains("/com/bettercontent/settlementroads/$scope/") }) {
+                "Coverage selection is missing expected classes in $scope"
+            }
+        }
+        val execution = tasks.test.get().extensions.getByType<JacocoTaskExtension>().destinationFile
+        check(execution != null && execution.isFile && execution.length() > 0) {
+            "Coverage execution data is missing or empty"
+        }
+    }
+}
+
+tasks.jacocoTestReport { dependsOn(verifyCoverageInputs) }
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.jacocoTestReport)
+    classDirectories.setFrom(tasks.jacocoTestReport.map { it.classDirectories })
+    doFirst {
+        val xml = tasks.jacocoTestReport.get().reports.xml.outputLocation.get().asFile
+        check(xml.isFile) { "Coverage report is missing" }
+        val factory = DocumentBuilderFactory.newInstance()
+        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+        factory.setFeature("http://xml.org/sax/features/external-general-entities", false)
+        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+        val document = factory.newDocumentBuilder().parse(xml)
+        val classes = document.getElementsByTagName("class")
+        val executableClasses = (0 until classes.length).mapNotNull { index ->
+            val klass = classes.item(index) as org.w3c.dom.Element
+            val counters = klass.childNodes
+            val executable = (0 until counters.length).any { child ->
+                val counter = counters.item(child) as? org.w3c.dom.Element
+                counter?.tagName == "counter" && counter.getAttribute("type") == "LINE" &&
+                    counter.getAttribute("missed").toLong() + counter.getAttribute("covered").toLong() > 0
+            }
+            if (executable) klass.getAttribute("name").replace('/', '.') else null
+        }
+        for (scope in listOf("planner", "data")) {
+            check(executableClasses.any { it.startsWith("com.bettercontent.settlementroads.$scope.") }) {
+                "Coverage report is missing executable counters in $scope"
+            }
+        }
+    }
     violationRules {
         rule {
             element = "BUNDLE"
-            includes = listOf(
-                "com.bettercontent.settlementroads.planner.*",
-                "com.bettercontent.settlementroads.planner.model.*",
-                "com.bettercontent.settlementroads.planner.terrain.*",
-                "com.bettercontent.settlementroads.planner.palette.*",
-                "com.bettercontent.settlementroads.planner.placement.*",
-                "com.bettercontent.settlementroads.planner.bridge.*",
-                "com.bettercontent.settlementroads.data.*"
-            )
+            includes = listOf("*")
             limit {
                 counter = "LINE"
                 value = "COVEREDRATIO"
