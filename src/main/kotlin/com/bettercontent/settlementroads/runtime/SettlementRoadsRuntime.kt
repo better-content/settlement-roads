@@ -45,6 +45,9 @@ object SettlementRoadsRuntime {
 
     fun onLevelUnload(event: LevelEvent.Unload) {
         val level = event.level as? ServerLevel ?: return
+        if (level != level.server.overworld()) {
+            return
+        }
         enqueue(level) {
             loadedChunks.remove(level)
             dirtyLevels.remove(level)
@@ -72,6 +75,9 @@ object SettlementRoadsRuntime {
 
     fun onChunkUnload(event: ChunkEvent.Unload) {
         val level = event.level as? ServerLevel ?: return
+        if (level != level.server.overworld()) {
+            return
+        }
         val chunk = event.chunk
         val chunkKey = chunk.pos.toLong()
         enqueue(level) {
