@@ -16,6 +16,8 @@ data class StructureScanResult(
 )
 
 object WorldStructureScanner {
+    private const val LEGACY_TEST_LANDMARK_KEY = "settlement_roads:test_landmark"
+
     fun scanLoadedChunks(
         level: ServerLevel,
         loadedChunkKeys: Set<Long>,
@@ -61,9 +63,11 @@ object WorldStructureScanner {
 
         val discoveredStructures = discoveredById.values.sortedBy { it.id }
         val activeStructures = discoveredStructures.filter { structure ->
-            val chunkX = structure.sourceChunkX
-            val chunkZ = structure.sourceChunkZ
-            chunkX == null || chunkZ == null || ChunkPos.asLong(chunkX, chunkZ) in loadedChunkKeys
+            isProductionStructure(structure) && run {
+                val chunkX = structure.sourceChunkX
+                val chunkZ = structure.sourceChunkZ
+                chunkX == null || chunkZ == null || ChunkPos.asLong(chunkX, chunkZ) in loadedChunkKeys
+            }
         }
 
         return StructureScanResult(
@@ -71,6 +75,10 @@ object WorldStructureScanner {
             activeStructures = activeStructures
         )
     }
+
+    /** Retain old debug records for review without letting them create or extend production roads. */
+    internal fun isProductionStructure(structure: StructureNode): Boolean =
+        structure.structureKey != LEGACY_TEST_LANDMARK_KEY
 
     private fun shouldTrackStructure(
         level: ServerLevel,
