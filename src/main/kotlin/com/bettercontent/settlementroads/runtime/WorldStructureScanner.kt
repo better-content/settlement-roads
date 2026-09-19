@@ -8,9 +8,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.FluidTags
 import net.minecraft.world.level.ChunkPos
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.chunk.LevelChunk
-import net.minecraft.world.level.levelgen.structure.BoundingBox
 
 data class StructureScanResult(
     val discoveredStructures: List<StructureNode>,
@@ -59,19 +57,6 @@ object WorldStructureScanner {
                 )
             }
 
-            chunk.findBlocks({ state -> state.`is`(Blocks.MAGENTA_CONCRETE) }) { pos, _ ->
-                val structureId = "settlement_roads:test_landmark@${pos.x},${pos.y},${pos.z}"
-                discoveredById[structureId] = StructureNode(
-                    id = structureId,
-                    structureKey = "settlement_roads:test_landmark",
-                    center = pos,
-                    bounds = BoundingBox(pos.x - 3, pos.y, pos.z - 3, pos.x + 3, pos.y + 8, pos.z + 3),
-                    ringPadding = config.defaultRingPadding,
-                    clusterRadius = config.defaultClusterRadius,
-                    sourceChunkX = chunk.pos.x,
-                    sourceChunkZ = chunk.pos.z
-                )
-            }
         }
 
         val discoveredStructures = discoveredById.values.sortedBy { it.id }

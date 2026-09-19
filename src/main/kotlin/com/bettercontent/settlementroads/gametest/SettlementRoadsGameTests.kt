@@ -5,13 +5,18 @@ import com.bettercontent.settlementroads.command.DebugScenarioBuilder
 import com.bettercontent.settlementroads.command.DebugScenarioId
 import com.bettercontent.settlementroads.command.createDefinition
 import com.bettercontent.settlementroads.data.PlannedRoadNetwork
+import com.bettercontent.settlementroads.data.SettlementRoadsSavedData
 import com.bettercontent.settlementroads.debug.DebugPlanPlacer
 import com.bettercontent.settlementroads.planner.PlannerConfig
 import com.bettercontent.settlementroads.planner.model.PathSegment
+import com.bettercontent.settlementroads.runtime.SettlementRoadsRuntime
+import com.bettercontent.settlementroads.runtime.SurfaceSampler
+import com.bettercontent.settlementroads.runtime.WorldNetworkPlacer
 import net.minecraft.core.BlockPos
 import net.minecraft.gametest.framework.GameTest
 import net.minecraft.gametest.framework.GameTestHelper
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.ChunkPos
 import net.minecraftforge.event.RegisterGameTestsEvent
 import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
@@ -118,6 +123,54 @@ object SettlementRoadsGameTests {
         helper.assertTrue(placed > 0, "Chunk-boundary scenario should place road blocks")
         helper.assertTrue(network.chunkStamps.map { it.chunkX }.toSet().size >= 2, "Plan should record placement stamps in both chunks")
         helper.assertTrue(segmentChunks.size >= 2, "Road segments should cross the chunk boundary")
+        helper.succeed()
+    }
+
+    @JvmStatic
+    @GameTest(template = "blank", timeoutTicks = 100)
+    fun registeredTickRebuildsOnFirstDirtyTick(helper: GameTestHelper) {
+        val level = helper.level
+        val saved = SettlementRoadsSavedData.get(level)
+        val original = saved.state
+        val stale = PlannedRoadNetwork.debugScenario(
+            helper.absolutePos(BlockPos(0, 2, 0)), DebugScenarioId.FLAT_GRASSY_TWINS, config
+        )
+        val completion = "finished-before-observation"
+        saved.update { it.copy(worldStructures = emptyList(), worldNetwork = stale.copy(appliedSegments = setOf(completion))) }
+        SettlementRoadsRuntime.markDirty(level)
+
+        // The mod's registered level-tick listener drains the dirty work; this test
+        // does not invoke rebuildFromLoadedChunks or the placer directly.
+        helper.succeedWhen {
+            val current = saved.state.worldNetwork
+            helper.assertTrue(current.structures.isEmpty(), "First dirty tick must rebuild the stale network")
+            helper.assertTrue(completion in current.appliedSegments, "Completed segments survive an unobserved scan")
+            saved.update { original }
+        }
+    }
+
+    @JvmStatic
+    @GameTest(template = "blank")
+    fun productionPlacementPreservesInterveningConstruction(helper: GameTestHelper) {
+        val origin = helper.absolutePos(BlockPos(0, 2, 0))
+        DebugScenarioBuilder.spawn(helper.level, DebugScenarioId.FLAT_GRASSY_TWINS.createDefinition(origin, config))
+        val network = PlannedRoadNetwork.debugScenario(origin, DebugScenarioId.FLAT_GRASSY_TWINS, config)
+        val ground = network.clusters.flatMap { it.connections }
+            .flatMap { it.segments }.filterIsInstance<PathSegment.Ground>().first()
+        val protected = SurfaceSampler.groundPos(helper.level, ground.blocks[ground.blocks.size / 2].x, ground.blocks[ground.blocks.size / 2].z)
+        helper.level.setBlockAndUpdate(protected, Blocks.CRAFTING_TABLE.defaultBlockState())
+        val loaded = (-4..4).flatMap { dx ->
+            (-4..4).map { dz -> ChunkPos.asLong((origin.x shr 4) + dx, (origin.z shr 4) + dz) }
+        }.toSet()
+
+        val result = WorldNetworkPlacer.placeAvailable(helper.level, network, loaded, config)
+        helper.assertTrue(result.appliedSegments.isNotEmpty(), "Production placement must attempt the loaded route")
+        helper.assertTrue(helper.level.getBlockState(protected).`is`(Blocks.CRAFTING_TABLE), "Constructed block must survive road placement")
+        val completed = network.copy(appliedSegments = result.appliedSegments)
+        val removed = SurfaceSampler.groundPos(helper.level, ground.blocks.first().x, ground.blocks.first().z)
+        helper.level.setBlockAndUpdate(removed, Blocks.AIR.defaultBlockState())
+        WorldNetworkPlacer.placeAvailable(helper.level, completed, loaded, config)
+        helper.assertTrue(helper.level.getBlockState(removed).isAir, "Completed road must not repair a later edit")
         helper.succeed()
     }
 

@@ -9,7 +9,6 @@ import com.bettercontent.settlementroads.planner.placement.SegmentIdCodec
 import com.bettercontent.settlementroads.tag.SettlementRoadsTags
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.tags.FluidTags
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
@@ -48,7 +47,7 @@ object WorldNetworkPlacer {
             if (ringBlocks.isEmpty()) {
                 continue
             }
-            if (ringBlocks.any { ChunkPos.asLong(it.x shr 4, it.z shr 4) !in loadedChunkKeys }) {
+            if (!roadFootprintLoaded(level, ringBlocks, loadedChunkKeys)) {
                 continue
             }
 
@@ -81,6 +80,9 @@ object WorldNetworkPlacer {
 
                     val requiredChunks = chunkStampsBySegment[segmentId].orEmpty()
                     if (requiredChunks.any { ChunkPos.asLong(it.chunkX, it.chunkZ) !in loadedChunkKeys }) {
+                        return@forEachIndexed
+                    }
+                    if (segment is PathSegment.Ground && !roadFootprintLoaded(level, segment.blocks, loadedChunkKeys)) {
                         return@forEachIndexed
                     }
 
@@ -147,21 +149,21 @@ object WorldNetworkPlacer {
     }
 
     private fun snapToSurface(level: ServerLevel, pos: BlockPos): BlockPos {
-        return SurfaceSampler.groundPos(level, pos.x, pos.z)
+        return if (isLoaded(level, pos)) SurfaceSampler.groundPos(level, pos.x, pos.z) else pos
     }
 
     private fun placeBridge(level: ServerLevel, segment: PathSegment.Bridge): Int {
         var placed = 0
         for ((index, pos) in segment.blocks.withIndex()) {
             val lateralOffsets = lateralOffsets(segment.blocks, index)
-            placed += placeIfChanged(level, pos, Blocks.STONE_BRICKS)
+            placed += placeBridgeBlockIfSafe(level, pos, Blocks.STONE_BRICKS)
             for ((offsetX, offsetZ) in lateralOffsets) {
-                placed += placeIfChanged(level, pos.offset(offsetX, 0, offsetZ), Blocks.STONE_BRICKS)
+                placed += placeBridgeBlockIfSafe(level, pos.offset(offsetX, 0, offsetZ), Blocks.STONE_BRICKS)
             }
 
             val wallOffsets = wallOffsets(lateralOffsets)
             for ((offsetX, offsetZ) in wallOffsets) {
-                placed += placeIfChanged(level, pos.offset(offsetX, 1, offsetZ), Blocks.STONE_BRICK_WALL)
+                placed += placeBridgeBlockIfSafe(level, pos.offset(offsetX, 1, offsetZ), Blocks.STONE_BRICK_WALL)
             }
         }
 
@@ -171,7 +173,7 @@ object WorldNetworkPlacer {
                 val radius = support.baseWidth - 1
                 for (offsetX in -radius..radius) {
                     for (offsetZ in -radius..radius) {
-                        placed += placeIfChanged(level, BlockPos(support.x + offsetX, support.toY, support.z + offsetZ), Blocks.COBBLESTONE)
+                        placed += placeBridgeBlockIfSafe(level, BlockPos(support.x + offsetX, support.toY, support.z + offsetZ), Blocks.COBBLESTONE)
                     }
                 }
             }
@@ -204,9 +206,11 @@ object WorldNetworkPlacer {
     }
 
     private fun isRoadableGround(level: ServerLevel, pos: BlockPos): Boolean {
+        if (!isLoaded(level, pos) || level.getBlockEntity(pos) != null) return false
         val state = level.getBlockState(pos)
-        val fluid = state.fluidState
-        return !state.isAir && !fluid.`is`(FluidTags.WATER) && !fluid.`is`(FluidTags.LAVA)
+        // This is an intentionally narrow natural surface list. A material tag cannot
+        // establish whether a player placed a block, but excludes ordinary construction.
+        return state.fluidState.isEmpty && state.block in NATURAL_GROUND
     }
 
     private fun wallOffsets(roadOffsets: List<Pair<Int, Int>>): List<Pair<Int, Int>> =
@@ -226,12 +230,19 @@ object WorldNetworkPlacer {
         }
     }
 
+    private fun roadFootprintLoaded(level: ServerLevel, path: List<BlockPos>, loadedChunkKeys: Set<Long>): Boolean =
+        path.indices.all { index ->
+            val point = path[index]
+            (listOf(point) + lateralOffsets(path, index).map { (dx, dz) -> point.offset(dx, 0, dz) })
+                .all { ChunkPos.asLong(it.x shr 4, it.z shr 4) in loadedChunkKeys && isLoaded(level, it) }
+        }
+
     private fun placeVerticalColumn(level: ServerLevel, x: Int, fromY: Int, toY: Int, z: Int): Int {
         var placed = 0
         val top = maxOf(fromY, toY)
         val bottom = minOf(fromY, toY)
         for (y in bottom..top) {
-            placed += placeIfChanged(level, BlockPos(x, y, z), Blocks.COBBLESTONE)
+            placed += placeBridgeBlockIfSafe(level, BlockPos(x, y, z), Blocks.COBBLESTONE)
         }
         return placed
     }
@@ -239,11 +250,33 @@ object WorldNetworkPlacer {
     private fun placeIfChanged(level: ServerLevel, pos: BlockPos, block: Block): Int =
         placeIfChanged(level, pos, block.defaultBlockState())
 
+    private fun placeBridgeBlockIfSafe(level: ServerLevel, pos: BlockPos, block: Block): Int {
+        if (!isLoaded(level, pos) || level.getBlockEntity(pos) != null) return 0
+        val expected = level.getBlockState(pos)
+        if (!expected.isAir && expected.fluidState.isEmpty && expected.block !in NATURAL_GROUND) return 0
+        return placeIfChanged(level, pos, block)
+    }
+
     private fun placeIfChanged(level: ServerLevel, pos: BlockPos, state: BlockState): Int {
-        if (level.getBlockState(pos) == state) {
+        if (!isLoaded(level, pos)) return 0
+        val expected = level.getBlockState(pos)
+        if (expected == state || level.getBlockEntity(pos) != null) {
             return 0
         }
+        // Recheck the expected state before mutation, so an intervening edit wins.
+        if (level.getBlockState(pos) != expected) return 0
         level.setBlockAndUpdate(pos, state)
         return 1
     }
+
+    private val NATURAL_GROUND = setOf(
+        Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.COARSE_DIRT, Blocks.PODZOL,
+        Blocks.MYCELIUM, Blocks.ROOTED_DIRT, Blocks.MUD, Blocks.CLAY,
+        Blocks.SAND, Blocks.RED_SAND, Blocks.GRAVEL, Blocks.STONE,
+        Blocks.ANDESITE, Blocks.DIORITE, Blocks.GRANITE, Blocks.TUFF,
+        Blocks.DEEPSLATE, Blocks.SNOW_BLOCK
+    )
+
+    private fun isLoaded(level: ServerLevel, pos: BlockPos): Boolean =
+        level.chunkSource.hasChunk(pos.x shr 4, pos.z shr 4)
 }

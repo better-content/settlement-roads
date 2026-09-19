@@ -95,14 +95,14 @@ object SettlementRoadsRuntime {
             (level.gameTime % 100L == 0L) &&
             SettlementRoadsSavedData.get(level).state.worldNetwork.structures.isEmpty()
         val plannerConfig = config
-        val rebuildCooldownElapsed = level.gameTime - (lastRebuildGameTime[level] ?: Long.MIN_VALUE) >= plannerConfig.minTicksBetweenRebuilds
+        val rebuildCooldownElapsed = elapsed(level.gameTime, lastRebuildGameTime[level], plannerConfig.minTicksBetweenRebuilds)
 
         if ((dirtyLevels.contains(level) && rebuildCooldownElapsed) || shouldPeriodicRefresh) {
             dirtyLevels.remove(level)
             rebuildFromLoadedChunks(level)
             lastRebuildGameTime[level] = level.gameTime
         }
-        if (hasPlayers && level.gameTime - (lastPlacementGameTime[level] ?: Long.MIN_VALUE) >= PLACEMENT_INTERVAL_TICKS) {
+        if (hasPlayers && elapsed(level.gameTime, lastPlacementGameTime[level], PLACEMENT_INTERVAL_TICKS)) {
             placeAvailable(level)
             lastPlacementGameTime[level] = level.gameTime
         }
@@ -115,7 +115,8 @@ object SettlementRoadsRuntime {
         val plannerConfig = config
         val scan = WorldStructureScanner.scanLoadedChunks(level, loadedChunkKeys, savedData.state.worldStructures, plannerConfig)
         val worldNetwork = WorldNetworkPlanner.plan(level, scan.activeStructures, plannerConfig)
-        val retainedAppliedSegments = savedData.state.worldNetwork.appliedSegments.intersect(worldNetwork.segmentIds())
+        // Completion is durable even when a structure temporarily leaves the observed area.
+        val retainedAppliedSegments = savedData.state.worldNetwork.appliedSegments
 
         savedData.update {
             it.copy(
@@ -184,6 +185,9 @@ object SettlementRoadsRuntime {
     private fun enqueue(level: ServerLevel, task: () -> Unit) {
         pendingMainThreadWork += level to task
     }
+
+    internal fun elapsed(now: Long, previous: Long?, interval: Long): Boolean =
+        previous == null || now < previous || now - previous >= interval
 
     private fun drainPendingWork(level: ServerLevel) {
         while (true) {
